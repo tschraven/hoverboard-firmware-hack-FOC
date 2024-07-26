@@ -321,7 +321,7 @@ int main(void) {
       filtLowPass32(speedRateFixdt >> 4, FILTER, &speedFixdt);
       steer = (int16_t)(steerFixdt >> 16);  // convert fixed-point to integer
       speed = (int16_t)(speedFixdt >> 16);  // convert fixed-point to integer
-      steer *= 1 / speed;
+      steer *= (1 / ((speed*speed)+1))*5;
       speed *= .2;
 
       // ####### VARIANT_HOVERCAR #######
