@@ -1066,7 +1066,7 @@ void readCommand(void) {
 
     #ifdef VARIANT_HOVERCAR
     if (inIdx == CONTROL_ADC) {
-      brakePressed = (uint8_t)(input1[inIdx].cmd > 50);
+      brakePressed = (uint8_t)(input2[inIdx].cmd < -50);
     }
     else {
       brakePressed = (uint8_t)(input2[inIdx].cmd < -50);
