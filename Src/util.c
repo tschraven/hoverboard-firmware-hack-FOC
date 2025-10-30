@@ -673,7 +673,7 @@ void standstillHold(void) {
 
   // --- Fallbacks (safe defaults) if you haven't added these to config.h yet ---
   #ifndef STANDSTILL_STEER_NEUTRAL
-  #define STANDSTILL_STEER_NEUTRAL   80   // EXPLAIN: allow small steering wiggle at a stop
+  #define STANDSTILL_STEER_NEUTRAL   20   // EXPLAIN: allow small steering wiggle at a stop
   #endif
   #ifndef STANDSTILL_SPEED_NEUTRAL
   #define STANDSTILL_SPEED_NEUTRAL   20   // EXPLAIN: allow tiny throttle wiggle at a stop
