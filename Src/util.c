@@ -670,25 +670,49 @@ void updateCurSpdLim(void) {
  */
 void standstillHold(void) {
   #if defined(STANDSTILL_HOLD_ENABLE) && (CTRL_TYP_SEL == FOC_CTRL) && (CTRL_MOD_REQ != SPD_MODE)
-    if (!rtP_Left.b_cruiseCtrlEna) {                                  // If Stanstill in NOT Active -> try Activation
-      if (((input1[inIdx].cmd > 50 || input2[inIdx].cmd < -50) && speedAvgAbs < 30) // Check if Brake is pressed AND measured speed is small
-          || (input2[inIdx].cmd < 20 && speedAvgAbs < 5)) {           // OR Throttle is small AND measured speed is very small
-        rtP_Left.n_cruiseMotTgt   = 0;
-        rtP_Right.n_cruiseMotTgt  = 0;
-        rtP_Left.b_cruiseCtrlEna  = 1;
-        rtP_Right.b_cruiseCtrlEna = 1;
-        standstillAcv = 1;
-      } 
-    }
-    else {                                                            // If Stanstill is Active -> try Deactivation
-      if (input1[inIdx].cmd < 20 && input2[inIdx].cmd > 50 && !cruiseCtrlAcv) { // Check if Brake is released AND Throttle is pressed AND no Cruise Control
-        rtP_Left.b_cruiseCtrlEna  = 0;
-        rtP_Right.b_cruiseCtrlEna = 0;
-        standstillAcv = 0;
-      }
-    }
+
+  // --- Fallbacks (safe defaults) if you haven't added these to config.h yet ---
+  #ifndef STANDSTILL_STEER_NEUTRAL
+  #define STANDSTILL_STEER_NEUTRAL   80   // EXPLAIN: allow small steering wiggle at a stop
   #endif
+  #ifndef STANDSTILL_SPEED_NEUTRAL
+  #define STANDSTILL_SPEED_NEUTRAL   20   // EXPLAIN: allow tiny throttle wiggle at a stop
+  #endif
+
+  // --- Read current logical commands (ADC variant: input2 = SPEED, input1 = STEER) ---
+  const int16_t speedCmd = input2[inIdx].cmd;   // EXPLAIN: throttle command, signed (− for reverse, + for forward)
+  const int16_t steerCmd = input1[inIdx].cmd;   // EXPLAIN: steering command, signed (− left, + right)
+
+  // --- Interpret a light pull-back on SPEED as "brake" to request standstill ---
+  const uint8_t brake = (speedCmd < -50);       // EXPLAIN: threshold for brake intent; tune 30–80 as needed
+
+  // --- Only auto-latch standstill when BOTH axes are near neutral ("hands off") ---
+  const uint8_t nearNeutral =
+      (ABS(speedCmd) < STANDSTILL_SPEED_NEUTRAL) &&   // EXPLAIN: throttle nearly zero
+      (ABS(steerCmd) < STANDSTILL_STEER_NEUTRAL);     // EXPLAIN: steering nearly centered
+
+  if (!rtP_Left.b_cruiseCtrlEna) {  // EXPLAIN: Standstill is NOT active → try to activate
+    // EXPLAIN: Activate if (A) explicit brake at low speed, OR (B) hands-off & essentially stopped
+    if ( (brake && (speedAvgAbs < 30))                        // EXPLAIN: small reverse command at low speed
+      || (nearNeutral && (speedCmd < 20) && (speedAvgAbs < 5)) ) {  // EXPLAIN: hands off & nearly stationary
+      rtP_Left.n_cruiseMotTgt   = 0;   // EXPLAIN: target zero speed for both motors
+      rtP_Right.n_cruiseMotTgt  = 0;
+      rtP_Left.b_cruiseCtrlEna  = 1;   // EXPLAIN: engage standstill hold (reuses cruise enable latch)
+      rtP_Right.b_cruiseCtrlEna = 1;
+      standstillAcv = 1;               // EXPLAIN: flag for UI/telemetry
+    }
+  } else {  // EXPLAIN: Standstill IS active → try to deactivate
+    // EXPLAIN: Release if the driver clearly commands motion: forward OR reverse (steer doesn't block)
+    if ( ((speedCmd > 50) || (speedCmd < -50)) && !cruiseCtrlAcv ) {  // EXPLAIN: ignore if cruise is active
+      rtP_Left.b_cruiseCtrlEna  = 0;   // EXPLAIN: drop the hold
+      rtP_Right.b_cruiseCtrlEna = 0;
+      standstillAcv = 0;
+    }
+  }
+
+  #endif  // STANDSTILL_HOLD_ENABLE && FOC && !SPD_MODE
 }
+
 
  /*
  * Electric Brake Function

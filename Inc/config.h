@@ -165,10 +165,15 @@
 
 // Extra functionality
 #define STANDSTILL_HOLD_ENABLE         // [-] Flag to hold the position when standtill is reached. Only available and makes sense for VOLTAGE or TORQUE mode.
+  #define STANDSTILL_HOLD_THR    200   // engage below this avg speed (tune 100–300). NOTE: currently not build in
+  #define STANDSTILL_HOLD_MAX    500   // max hold torque (tune 300–700). NOTE: currently not build in
+  #define STANDSTILL_STEER_NEUTRAL   80   // Neutral thresholds for Standstill Hold, command units, ~small steer wiggle allowed
+  #define STANDSTILL_SPEED_NEUTRAL   20   // Neutral thresholds for Standstill Hold, command units, ~tiny throttle wiggle allowed
 #define ELECTRIC_BRAKE_ENABLE           // [-] Flag to enable electric brake and replace the motor "freewheel" with a constant braking when the input torque request is 0. Only available and makes sense for TORQUE mode.
  #define ELECTRIC_BRAKE_MAX    180       // (0, 500) Maximum electric brake to be applied when input torque request is 0 (pedal fully released).
  #define ELECTRIC_BRAKE_THRES  160       // (0, 500) Threshold below at which the electric brake starts engaging.
-// ########################### END OF MOTOR CONTROL ########################
+
+ // ########################### END OF MOTOR CONTROL ########################
 
 
 
