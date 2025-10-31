@@ -1733,30 +1733,61 @@ void rateLimiter16(int16_t u, int16_t rate, int16_t *y) {
 }
 
 
-  /* mixerFcn(rtu_speed, rtu_steer, &rty_speedR, &rty_speedL); 
-  * Inputs:       rtu_speed, rtu_steer                  = fixdt(1,16,4)
-  * Outputs:      rty_speedR, rty_speedL                = int16_t
-  * Parameters:   SPEED_COEFFICIENT, STEER_COEFFICIENT  = fixdt(0,16,14)
-  */
+/* mixerFcn(rtu_speed, rtu_steer, &rty_speedR, &rty_speedL);
+ * Inputs:       rtu_speed, rtu_steer                  = fixdt(1,16,4)  (Q4)
+ * Outputs:      rty_speedR, rty_speedL                = int16_t  (post >>4)
+ * Parameters:   SPEED_COEFFICIENT, STEER_COEFFICIENT  = fixdt(0,16,14) (Q14)
+ */
 void mixerFcn(int16_t rtu_speed, int16_t rtu_steer, int16_t *rty_speedR, int16_t *rty_speedL) {
     int16_t prodSpeed;
     int16_t prodSteer;
     int32_t tmp;
 
-    prodSpeed   = (int16_t)((rtu_speed * (int16_t)SPEED_COEFFICIENT) >> 14);
-    prodSteer   = (int16_t)((rtu_steer * (int16_t)STEER_COEFFICIENT) >> 14);
+    // ---- Anti-stiction nudge (Q4) -------------------------------------------
+    // EXPLAIN: At ~zero throttle, a clear steer request should pivot the wheels.
+    //          Electric-brake + static friction can "hold" both wheels; this
+    //          tiny signed nudge adds just enough bias for one wheel to start.
+    //          All thresholds are in Q4 (same units as rtu_speed/rtu_steer).
+    #ifndef STICKTION_SPEED_NEUTRAL_Q4
+    #define STICKTION_SPEED_NEUTRAL_Q4   (10 << 4)   // EXPLAIN: |speed| < ~10 (post >>4 units)
+    #endif
+    #ifndef STICKTION_STEER_THRESH_Q4
+    #define STICKTION_STEER_THRESH_Q4    (80 << 4)   // EXPLAIN: need |steer| > ~80 to count as "pivot"
+    #endif
+    #ifndef STICKTION_NUDGE_Q4
+    #define STICKTION_NUDGE_Q4           (12 << 4)   // EXPLAIN: ~+/-12 in post >>4 units (tiny)
+    #endif
 
-    tmp         = prodSpeed - prodSteer;  
-    tmp         = CLAMP(tmp, -32768, 32767);  // Overflow protection
-    *rty_speedR = (int16_t)(tmp >> 4);        // Convert from fixed-point to int 
+    int16_t speedQ4 = rtu_speed; // working copy we may nudge
+
+    if ( (ABS(rtu_speed) < STICKTION_SPEED_NEUTRAL_Q4) &&      // EXPLAIN: basically zero throttle
+         (ABS(rtu_steer) > STICKTION_STEER_THRESH_Q4) ) {      // EXPLAIN: clear steer intent
+        // EXPLAIN: push speed slightly in the direction of steering so one side
+        //          overcomes static friction and starts the counter-rotation.
+        if (rtu_steer > 0) {
+            if (speedQ4 <= INT16_MAX - STICKTION_NUDGE_Q4) speedQ4 += STICKTION_NUDGE_Q4;
+        } else {
+            if (speedQ4 >= INT16_MIN + STICKTION_NUDGE_Q4) speedQ4 -= STICKTION_NUDGE_Q4;
+        }
+    }
+    // -------------------------------------------------------------------------
+
+    // Scale speed and steer by their gains (Q14), result back in Q4, kept in int16
+    prodSpeed = (int16_t)(( (int32_t)speedQ4   * (int16_t)SPEED_COEFFICIENT) >> 14);
+    prodSteer = (int16_t)(( (int32_t)rtu_steer * (int16_t)STEER_COEFFICIENT) >> 14);
+
+    // Right wheel = speed - steer
+    tmp         = (int32_t)prodSpeed - (int32_t)prodSteer;
+    tmp         = CLAMP(tmp, -32768, 32767);      // Overflow protection in Q4
+    *rty_speedR = (int16_t)(tmp >> 4);            // Convert from Q4 to int units
     *rty_speedR = CLAMP(*rty_speedR, INPUT_MIN, INPUT_MAX);
 
-    tmp         = prodSpeed + prodSteer;
-    tmp         = CLAMP(tmp, -32768, 32767);  // Overflow protection
-    *rty_speedL = (int16_t)(tmp >> 4);        // Convert from fixed-point to int
+    // Left wheel = speed + steer
+    tmp         = (int32_t)prodSpeed + (int32_t)prodSteer;
+    tmp         = CLAMP(tmp, -32768, 32767);      // Overflow protection in Q4
+    *rty_speedL = (int16_t)(tmp >> 4);            // Convert from Q4 to int units
     *rty_speedL = CLAMP(*rty_speedL, INPUT_MIN, INPUT_MAX);
 }
-
 
 
 /* =========================== Multiple Tap Function =========================== */
