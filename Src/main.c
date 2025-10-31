@@ -319,6 +319,10 @@ int main(void) {
       rateLimiter16(input2[inIdx].cmd, rate, &speedRateFixdt);
       filtLowPass32(steerRateFixdt >> 4, FILTER, &steerFixdt);
       filtLowPass32(speedRateFixdt >> 4, FILTER, &speedFixdt);
+
+      // Convert filtered fixed-point (Q16-ish) to plain int16 commands
+      steer = (int16_t)(steerFixdt >> 16);
+      speed = (int16_t)(speedFixdt >> 16);
     
       // --- Soft-pivot boost: make initial turns more consistent from standstill ---
       // We work in the same fixed-point scale used by the filter path:
