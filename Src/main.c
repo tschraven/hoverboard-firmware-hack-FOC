@@ -324,33 +324,27 @@ int main(void) {
       steer = (int16_t)(steerFixdt >> 16);
       speed = (int16_t)(speedFixdt >> 16);
     
-      // --- Soft-pivot boost: make initial turns more consistent from standstill ---
-      // We work in the same fixed-point scale used by the filter path:
-      //  - steerFixdt & speedFixdt are Q(whatever)>>4 later, so make decisions in int16 (>>4),
-      //    then add the boost back in the fixed-point domain (<<4).
-      {
-      int16_t speed_q = (int16_t)(speedFixdt >> 4);   // filtered speed in [-1000..1000]
-      int16_t steer_q = (int16_t)(steerFixdt >> 4);   // filtered steer in [-1000..1000]
-
-      // Only nudge when we're basically stopped, but the driver is asking for a turn.
-      if ((ABS(speed_q) < PIVOT_SPEED_WINDOW) && (ABS(steer_q) > PIVOT_STEER_MIN)) {
-          // Push steer a little further in the requested direction to overcome stiction.
-          int16_t boost_cmd = (steer_q >= 0) ? PIVOT_BOOST : -PIVOT_BOOST;
-
-          // Apply the boost in the same fixed-point scaling as steerFixdt.
-          int32_t steer_boost_fp = ((int32_t)boost_cmd) << 4;
-
-          // Saturate in fixed-point so later clamps don’t see junk.
-          int32_t steer_min_fp = ((int32_t)INPUT_MIN) << 4;
-          int32_t steer_max_fp = ((int32_t)INPUT_MAX) << 4;
-
-          int32_t steer_fp = steerFixdt + steer_boost_fp;
-          steer_fp = CLAMP(steer_fp, steer_min_fp, steer_max_fp);
-          steerFixdt = steer_fp;
-        } 
+      /* ---- Soft pivot boost (minimal, smooth) ----
+      * Only when throttle ~0 and steer is clear, gently increase steer.
+      */
+      #ifndef PIVOT_SPEED_NEUTRAL
+      #define PIVOT_SPEED_NEUTRAL   10
+      #endif
+      #ifndef PIVOT_STEER_MIN
+      #define PIVOT_STEER_MIN       60
+      #endif
+      #ifndef PIVOT_BOOST
+      #define PIVOT_BOOST           50
+      #endif
+      static inline int16_t i16abs_local(int16_t x){ return (x>=0)?x:(int16_t)(-x); }
+      static inline int16_t sat_add_i16(int16_t a,int16_t b){
+        int32_t s=(int32_t)a+(int32_t)b; if(s>32767) return 32767; if(s<-32768) return -32768; return (int16_t)s;
       }
-      // --- end soft-pivot boost ---
-
+      if (i16abs_local(speed) < PIVOT_SPEED_NEUTRAL && i16abs_local(steer) > PIVOT_STEER_MIN) {
+        const int16_t boost = (steer >= 0) ? PIVOT_BOOST : (int16_t)(-PIVOT_BOOST);
+      steer = sat_add_i16(steer, boost);
+      }
+      /* ---- end soft pivot boost ---- */
       // ---------------------------------------------------------------------------
   
       // ####### VARIANT_HOVERCAR #######
