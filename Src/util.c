@@ -1748,28 +1748,28 @@ void mixerFcn(int16_t rtu_speed, int16_t rtu_steer, int16_t *rty_speedR, int16_t
     //          Electric-brake + static friction can "hold" both wheels; this
     //          tiny signed nudge adds just enough bias for one wheel to start.
     //          All thresholds are in Q4 (same units as rtu_speed/rtu_steer).
-    #ifndef STICKTION_SPEED_NEUTRAL_Q4
-    #define STICKTION_SPEED_NEUTRAL_Q4   (10 << 4)   // EXPLAIN: |speed| < ~10 (post >>4 units)
-    #endif
-    #ifndef STICKTION_STEER_THRESH_Q4
-    #define STICKTION_STEER_THRESH_Q4    (80 << 4)   // EXPLAIN: need |steer| > ~80 to count as "pivot"
-    #endif
-    #ifndef STICKTION_NUDGE_Q4
-    #define STICKTION_NUDGE_Q4           (12 << 4)   // EXPLAIN: ~+/-12 in post >>4 units (tiny)
-    #endif
+    // #ifndef STICKTION_SPEED_NEUTRAL_Q4
+    // #define STICKTION_SPEED_NEUTRAL_Q4   (10 << 4)   // EXPLAIN: |speed| < ~10 (post >>4 units)
+    // #endif
+    // #ifndef STICKTION_STEER_THRESH_Q4
+    // #define STICKTION_STEER_THRESH_Q4    (80 << 4)   // EXPLAIN: need |steer| > ~80 to count as "pivot"
+    // #endif
+    // #ifndef STICKTION_NUDGE_Q4
+    // #define STICKTION_NUDGE_Q4           (12 << 4)   // EXPLAIN: ~+/-12 in post >>4 units (tiny)
+    // #endif
 
-    int16_t speedQ4 = rtu_speed; // working copy we may nudge
+    // int16_t speedQ4 = rtu_speed; // working copy we may nudge
 
-    if ( (ABS(rtu_speed) < STICKTION_SPEED_NEUTRAL_Q4) &&      // EXPLAIN: basically zero throttle
-         (ABS(rtu_steer) > STICKTION_STEER_THRESH_Q4) ) {      // EXPLAIN: clear steer intent
-        // EXPLAIN: push speed slightly in the direction of steering so one side
+    // if ( (ABS(rtu_speed) < STICKTION_SPEED_NEUTRAL_Q4) &&      // EXPLAIN: basically zero throttle
+    //     (ABS(rtu_steer) > STICKTION_STEER_THRESH_Q4) ) {      // EXPLAIN: clear steer intent
+    //    // EXPLAIN: push speed slightly in the direction of steering so one side
         //          overcomes static friction and starts the counter-rotation.
-        if (rtu_steer > 0) {
-            if (speedQ4 <= INT16_MAX - STICKTION_NUDGE_Q4) speedQ4 += STICKTION_NUDGE_Q4;
-        } else {
-            if (speedQ4 >= INT16_MIN + STICKTION_NUDGE_Q4) speedQ4 -= STICKTION_NUDGE_Q4;
-        }
-    }
+    //    if (rtu_steer > 0) {
+    //        if (speedQ4 <= INT16_MAX - STICKTION_NUDGE_Q4) speedQ4 += STICKTION_NUDGE_Q4;
+    //    } else {
+    //        if (speedQ4 >= INT16_MIN + STICKTION_NUDGE_Q4) speedQ4 -= STICKTION_NUDGE_Q4;
+    //    }
+    //}
     // -------------------------------------------------------------------------
 
     // Scale speed and steer by their gains (Q14), result back in Q4, kept in int16

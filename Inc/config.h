@@ -174,10 +174,17 @@
  #define ELECTRIC_BRAKE_THRES  160       // (0, 500) Threshold below at which the electric brake starts engaging.
  #define ELECTRIC_BRAKE_STEER_NEUTRAL  80   // steer “neutral” window (command units)
  #define ELECTRIC_BRAKE_SPEED_NEUTRAL  20   // speed “neutral” window (command units)
+ 
 // Variables for "Anti-Sticktion" of Ebrake and Standstill Hold at zero throttle
-#define STICKTION_SPEED_NEUTRAL_Q4   (10 << 4) 
-#define STICKTION_STEER_THRESH_Q4    (80 << 4)
-#define STICKTION_NUDGE_Q4           (12 << 4)
+// #define STICKTION_SPEED_NEUTRAL_Q4   (10 << 4) 
+// #define STICKTION_STEER_THRESH_Q4    (80 << 4)
+// #define STICKTION_NUDGE_Q4           (12 << 4)
+
+// --- Soft-pivot boost (helps initiate a turn from zero speed) ---
+#define PIVOT_SPEED_WINDOW   20   // |speed| below this (in cmd units) = “near zero”
+#define PIVOT_STEER_MIN      60   // need at least this steering command to trigger
+#define PIVOT_BOOST          50   // how much steering bias to add (in cmd units)
+
 
  // ########################### END OF MOTOR CONTROL ########################
 

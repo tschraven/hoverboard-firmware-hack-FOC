@@ -319,12 +319,36 @@ int main(void) {
       rateLimiter16(input2[inIdx].cmd, rate, &speedRateFixdt);
       filtLowPass32(steerRateFixdt >> 4, FILTER, &steerFixdt);
       filtLowPass32(speedRateFixdt >> 4, FILTER, &speedFixdt);
-      steer = (int16_t)(steerFixdt >> 16);  // convert fixed-point to integer
-      speed = (int16_t)(speedFixdt >> 16);  // convert fixed-point to integer
-      
-      
+    
+      // --- Soft-pivot boost: make initial turns more consistent from standstill ---
+      // We work in the same fixed-point scale used by the filter path:
+      //  - steerFixdt & speedFixdt are Q(whatever)>>4 later, so make decisions in int16 (>>4),
+      //    then add the boost back in the fixed-point domain (<<4).
+      {
+      int16_t speed_q = (int16_t)(speedFixdt >> 4);   // filtered speed in [-1000..1000]
+      int16_t steer_q = (int16_t)(steerFixdt >> 4);   // filtered steer in [-1000..1000]
 
+      // Only nudge when we're basically stopped, but the driver is asking for a turn.
+      if ((ABS(speed_q) < PIVOT_SPEED_WINDOW) && (ABS(steer_q) > PIVOT_STEER_MIN)) {
+          // Push steer a little further in the requested direction to overcome stiction.
+          int16_t boost_cmd = (steer_q >= 0) ? PIVOT_BOOST : -PIVOT_BOOST;
 
+          // Apply the boost in the same fixed-point scaling as steerFixdt.
+          int32_t steer_boost_fp = ((int32_t)boost_cmd) << 4;
+
+          // Saturate in fixed-point so later clamps don’t see junk.
+          int32_t steer_min_fp = ((int32_t)INPUT_MIN) << 4;
+          int32_t steer_max_fp = ((int32_t)INPUT_MAX) << 4;
+
+          int32_t steer_fp = steerFixdt + steer_boost_fp;
+          steer_fp = CLAMP(steer_fp, steer_min_fp, steer_max_fp);
+          steerFixdt = steer_fp;
+        } 
+      }
+      // --- end soft-pivot boost ---
+
+      // ---------------------------------------------------------------------------
+  
       // ####### VARIANT_HOVERCAR #######
       #ifdef VARIANT_HOVERCAR
       if (inIdx == CONTROL_ADC) {               // Only use use implementation below if pedals are in use (ADC input)
