@@ -175,7 +175,6 @@
  #define ELECTRIC_BRAKE_STEER_NEUTRAL  80   // steer “neutral” window (command units)
  #define ELECTRIC_BRAKE_SPEED_NEUTRAL  20   // speed “neutral” window (command units)
 
-
  // ########################### END OF MOTOR CONTROL ########################
 
 

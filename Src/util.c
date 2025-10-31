@@ -780,7 +780,7 @@ void electricBrake(uint16_t speedBlend, uint8_t reverseDir) {
     }
   #endif
 }
-ele
+
 
  /*
  * Cruise Control Function
