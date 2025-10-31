@@ -726,30 +726,61 @@ void electricBrake(uint16_t speedBlend, uint8_t reverseDir) {
   #if defined(ELECTRIC_BRAKE_ENABLE) && (CTRL_TYP_SEL == FOC_CTRL) && (CTRL_MOD_REQ == TRQ_MODE)
     int16_t brakeVal;
 
-    // Make sure the Brake pedal is opposite to the direction of motion AND it goes to 0 as we reach standstill (to avoid Reverse driving) 
+    // ---- (A) Compute signed brakeVal that always opposes motion, and fades with speed ----
+    // EXPLAIN: speedBlend is Q15 (0..32767). ELECTRIC_BRAKE_MAX is in "input command" units.
     if (speedAvg > 0) {
       brakeVal = (int16_t)((-ELECTRIC_BRAKE_MAX * speedBlend) >> 15);
     } else {
       brakeVal = (int16_t)(( ELECTRIC_BRAKE_MAX * speedBlend) >> 15);
     }
 
-    // Check if direction is reversed
+    // ---- (B) Optional: flip if reverseDir flag says we toggled logical direction ----
+    // EXPLAIN: keep behavior identical to your build if reverseDir is used elsewhere.
     if (reverseDir) {
-      brakeVal = -brakeVal;
+      brakeVal = (int16_t)(-brakeVal);
     }
 
-    // Calculate the new input2.cmd with brake component included
-    if (input2[inIdx].cmd >= 0 && input2[inIdx].cmd < ELECTRIC_BRAKE_THRES) {
-      input2[inIdx].cmd = MAX(brakeVal, ((ELECTRIC_BRAKE_THRES - input2[inIdx].cmd) * brakeVal) / ELECTRIC_BRAKE_THRES);
-    } else if (input2[inIdx].cmd >= -ELECTRIC_BRAKE_THRES && input2[inIdx].cmd < 0) {
-      input2[inIdx].cmd = MIN(brakeVal, ((ELECTRIC_BRAKE_THRES + input2[inIdx].cmd) * brakeVal) / ELECTRIC_BRAKE_THRES);
-    } else if (input2[inIdx].cmd >= ELECTRIC_BRAKE_THRES) {
-      input2[inIdx].cmd = MAX(brakeVal, ((input2[inIdx].cmd - ELECTRIC_BRAKE_THRES) * INPUT_MAX) / (INPUT_MAX - ELECTRIC_BRAKE_THRES));
-    } else {  // when (input2.cmd < -ELECTRIC_BRAKE_THRES)
-      input2[inIdx].cmd = MIN(brakeVal, ((input2[inIdx].cmd + ELECTRIC_BRAKE_THRES) * INPUT_MIN) / (INPUT_MIN + ELECTRIC_BRAKE_THRES));
+    // ---- (C) Read current driver commands (logical roles: input2 = SPEED, input1 = STEER) ----
+    const int16_t speedCmd = input2[inIdx].cmd;   // EXPLAIN: throttle (− reverse, + forward)
+    const int16_t steerCmd = input1[inIdx].cmd;   // EXPLAIN: steering (− left, + right)
+
+    // ---- (D) Don’t let EB fight an in-place pivot at zero throttle ----
+    // EXPLAIN: if we are basically off-throttle but clearly steering, skip EB this cycle.
+    #ifndef ELECTRIC_BRAKE_SPEED_NEUTRAL
+    #define ELECTRIC_BRAKE_SPEED_NEUTRAL  20
+    #endif
+    #ifndef ELECTRIC_BRAKE_STEER_NEUTRAL
+    #define ELECTRIC_BRAKE_STEER_NEUTRAL  80
+    #endif
+    if ((ABS(speedCmd) < ELECTRIC_BRAKE_SPEED_NEUTRAL) &&
+        (ABS(steerCmd) > ELECTRIC_BRAKE_STEER_NEUTRAL)) {
+      return;  // EXPLAIN: allow clean counter-rotation on steer without EB drag
+    }
+
+    // ---- (E) Blend EB into the SPEED channel (input2) only, with your existing thresholds ----
+    // EXPLAIN: Use ELECTRIC_BRAKE_THRES to ramp EB in/out smoothly around neutral.
+    if (speedCmd >= 0 && speedCmd < ELECTRIC_BRAKE_THRES) {
+      // throttle small positive → approach brakeVal from 0 as we near neutral
+      int16_t blend = (int16_t)(( (int32_t)(ELECTRIC_BRAKE_THRES - speedCmd) * brakeVal ) / ELECTRIC_BRAKE_THRES);
+      input2[inIdx].cmd = MAX(brakeVal, blend);
+    } else if (speedCmd >= -ELECTRIC_BRAKE_THRES && speedCmd < 0) {
+      // throttle small negative → approach brakeVal from 0 as we near neutral
+      int16_t blend = (int16_t)(( (int32_t)(ELECTRIC_BRAKE_THRES + speedCmd) * brakeVal ) / ELECTRIC_BRAKE_THRES);
+      input2[inIdx].cmd = MIN(brakeVal, blend);
+    } else if (speedCmd >= ELECTRIC_BRAKE_THRES) {
+      // clear positive throttle → ensure continuity crossing into EB region
+      int16_t ramp = (int16_t)(( (int32_t)(speedCmd - ELECTRIC_BRAKE_THRES) * INPUT_MAX ) /
+                               (INPUT_MAX - ELECTRIC_BRAKE_THRES));
+      input2[inIdx].cmd = MAX(brakeVal, ramp);
+    } else { // speedCmd < -ELECTRIC_BRAKE_THRES
+      // clear negative throttle → ensure continuity crossing into EB region
+      int16_t ramp = (int16_t)(( (int32_t)(speedCmd + ELECTRIC_BRAKE_THRES) * INPUT_MIN ) /
+                               (INPUT_MIN + ELECTRIC_BRAKE_THRES));
+      input2[inIdx].cmd = MIN(brakeVal, ramp);
     }
   #endif
 }
+ele
 
  /*
  * Cruise Control Function
