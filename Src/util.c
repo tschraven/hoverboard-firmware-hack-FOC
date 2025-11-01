@@ -1738,10 +1738,28 @@ void rateLimiter16(int16_t u, int16_t rate, int16_t *y) {
  * Outputs:      rty_speedR, rty_speedL                = int16_t  (post >>4)
  * Parameters:   SPEED_COEFFICIENT, STEER_COEFFICIENT  = fixdt(0,16,14) (Q14)
  */
+
 void mixerFcn(int16_t rtu_speed, int16_t rtu_steer, int16_t *rty_speedR, int16_t *rty_speedL) {
     int16_t prodSpeed;
     int16_t prodSteer;
     int32_t tmp;
+
+    // Scale speed and steer by their gains (Q14) -> back to Q4
+    prodSpeed = (int16_t)(((int32_t)rtu_speed * (int16_t)SPEED_COEFFICIENT) >> 14);
+    prodSteer = (int16_t)(((int32_t)rtu_steer * (int16_t)STEER_COEFFICIENT) >> 14);
+
+    // Right wheel = speed - steer
+    tmp         = (int32_t)prodSpeed - (int32_t)prodSteer;
+    tmp         = CLAMP(tmp, -32768, 32767);
+    *rty_speedR = (int16_t)(tmp >> 4);
+    *rty_speedR = CLAMP(*rty_speedR, INPUT_MIN, INPUT_MAX);
+
+    // Left wheel = speed + steer
+    tmp         = (int32_t)prodSpeed + (int32_t)prodSteer;
+    tmp         = CLAMP(tmp, -32768, 32767);
+    *rty_speedL = (int16_t)(tmp >> 4);
+    *rty_speedL = CLAMP(*rty_speedL, INPUT_MIN, INPUT_MAX);
+}
 
     // ---- Anti-stiction nudge (Q4) -------------------------------------------
     // EXPLAIN: At ~zero throttle, a clear steer request should pivot the wheels.
