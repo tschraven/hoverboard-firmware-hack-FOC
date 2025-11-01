@@ -328,22 +328,27 @@ int main(void) {
       * Only when throttle ~0 and steer is clear, gently increase steer.
       */
       #ifndef PIVOT_SPEED_NEUTRAL
-      #define PIVOT_SPEED_NEUTRAL   10
+      #define PIVOT_SPEED_NEUTRAL   10   // |speed| < 10 => off-throttle
       #endif
       #ifndef PIVOT_STEER_MIN
-      #define PIVOT_STEER_MIN       60
+      #define PIVOT_STEER_MIN       60   // need at least this steer to trigger
       #endif
       #ifndef PIVOT_BOOST
-      #define PIVOT_BOOST           50
+      #define PIVOT_BOOST           50   // how much steer to add (same units as 'steer')
       #endif
-      static inline int16_t i16abs_local(int16_t x){ return (x>=0)?x:(int16_t)(-x); }
-      static inline int16_t sat_add_i16(int16_t a,int16_t b){
-        int32_t s=(int32_t)a+(int32_t)b; if(s>32767) return 32767; if(s<-32768) return -32768; return (int16_t)s;
-      }
-      if (i16abs_local(speed) < PIVOT_SPEED_NEUTRAL && i16abs_local(steer) > PIVOT_STEER_MIN) {
-        const int16_t boost = (steer >= 0) ? PIVOT_BOOST : (int16_t)(-PIVOT_BOOST);
-      steer = sat_add_i16(steer, boost);
-      }
+
+      /* abs for int16 without helpers */
+      int16_t abs_speed = (speed >= 0) ? speed : (int16_t)(-speed);
+      int16_t abs_steer = (steer >= 0) ? steer : (int16_t)(-steer);
+
+      if (abs_speed < PIVOT_SPEED_NEUTRAL && abs_steer > PIVOT_STEER_MIN) {
+      int16_t boost = (steer >= 0) ? PIVOT_BOOST : (int16_t)(-PIVOT_BOOST);
+      /* saturating add without helpers */
+      int32_t s = (int32_t)steer + (int32_t)boost;
+      if (s >  32767) s =  32767;
+      if (s < -32768) s = -32768;
+      steer = (int16_t)s;
+    }
       /* ---- end soft pivot boost ---- */
       // ---------------------------------------------------------------------------
   
