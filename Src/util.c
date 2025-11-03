@@ -723,66 +723,64 @@ void standstillHold(void) {
  * Output: input2.cmd (Throtle) with brake component included
  */
 void electricBrake(uint16_t speedBlend, uint8_t reverseDir) {
-  #if defined(ELECTRIC_BRAKE_ENABLE) && (CTRL_TYP_SEL == FOC_CTRL) && (CTRL_MOD_REQ == TRQ_MODE)
+#if defined(ELECTRIC_BRAKE_ENABLE) && (CTRL_TYP_SEL == FOC_CTRL) && (CTRL_MOD_REQ == TRQ_MODE)
     int16_t brakeVal;
 
-    // ---- (A) Compute signed brakeVal that always opposes motion, and fades with speed ----
-    // EXPLAIN: speedBlend is Q15 (0..32767). ELECTRIC_BRAKE_MAX is in "input command" units.
-    if (speedAvg > 0) {
-      brakeVal = (int16_t)((-ELECTRIC_BRAKE_MAX * speedBlend) >> 15);
-    } else {
-      brakeVal = (int16_t)(( ELECTRIC_BRAKE_MAX * speedBlend) >> 15);
-    }
+    // ---- Read current driver commands (logical roles: input2 = SPEED, input1 = STEER) ----
+    const int16_t speedCmd = input2[inIdx].cmd;   // throttle (− reverse, + forward)
+    const int16_t steerCmd = input1[inIdx].cmd;   // steering (− left, + right)
 
-    // ---- (B) Optional: flip if reverseDir flag says we toggled logical direction ----
-    // EXPLAIN: keep behavior identical to your build if reverseDir is used elsewhere.
-    if (reverseDir) {
-      brakeVal = (int16_t)(-brakeVal);
-    }
-
-    // ---- (C) Read current driver commands (logical roles: input2 = SPEED, input1 = STEER) ----
-    const int16_t speedCmd = input2[inIdx].cmd;   // EXPLAIN: throttle (− reverse, + forward)
-    const int16_t steerCmd = input1[inIdx].cmd;   // EXPLAIN: steering (− left, + right)
-
-    // ---- (D) Don’t let EB fight an in-place pivot at zero throttle ----
-    // EXPLAIN: if we are basically off-throttle but clearly steering, skip EB this cycle.
+    // ---- SKIP EB when steering or reverse is requested (prevents “grinding” at pivots/reverse) ----
+    // (Use small neutral windows so normal forward coasting still gets EB.)
     #ifndef ELECTRIC_BRAKE_SPEED_NEUTRAL
     #define ELECTRIC_BRAKE_SPEED_NEUTRAL  20
     #endif
     #ifndef ELECTRIC_BRAKE_STEER_NEUTRAL
     #define ELECTRIC_BRAKE_STEER_NEUTRAL  80
     #endif
-    if ((ABS(speedCmd) < ELECTRIC_BRAKE_SPEED_NEUTRAL) &&
-        (ABS(steerCmd) > ELECTRIC_BRAKE_STEER_NEUTRAL)) {
-      return;  // EXPLAIN: allow clean counter-rotation on steer without EB drag
+    if ((ABS(steerCmd) > ELECTRIC_BRAKE_STEER_NEUTRAL) ||      // clear steering pivot
+        (speedCmd < -ELECTRIC_BRAKE_SPEED_NEUTRAL)) {          // reverse torque requested
+        return; // do NOT apply EB this cycle
     }
 
-    // ---- (E) Blend EB into the SPEED channel (input2) only, with your existing thresholds ----
-    // EXPLAIN: Use ELECTRIC_BRAKE_THRES to ramp EB in/out smoothly around neutral.
-    if (speedCmd >= 0 && speedCmd < ELECTRIC_BRAKE_THRES) {
-      // throttle small positive → approach brakeVal from 0 as we near neutral
-      int16_t blend = (int16_t)(( (int32_t)(ELECTRIC_BRAKE_THRES - speedCmd) * brakeVal ) / ELECTRIC_BRAKE_THRES);
-      input2[inIdx].cmd = MAX(brakeVal, blend);
-    } else if (speedCmd >= -ELECTRIC_BRAKE_THRES && speedCmd < 0) {
-      // throttle small negative → approach brakeVal from 0 as we near neutral
-      int16_t blend = (int16_t)(( (int32_t)(ELECTRIC_BRAKE_THRES + speedCmd) * brakeVal ) / ELECTRIC_BRAKE_THRES);
-      input2[inIdx].cmd = MIN(brakeVal, blend);
-    } else if (speedCmd >= ELECTRIC_BRAKE_THRES) {
-      // clear positive throttle → ensure continuity crossing into EB region
-      int16_t ramp = (int16_t)(( (int32_t)(speedCmd - ELECTRIC_BRAKE_THRES) * INPUT_MAX ) /
-                               (INPUT_MAX - ELECTRIC_BRAKE_THRES));
-      input2[inIdx].cmd = MAX(brakeVal, ramp);
-    } else { // speedCmd < -ELECTRIC_BRAKE_THRES
-      // clear negative throttle → ensure continuity crossing into EB region
-      int16_t ramp = (int16_t)(( (int32_t)(speedCmd + ELECTRIC_BRAKE_THRES) * INPUT_MIN ) /
-                               (INPUT_MIN + ELECTRIC_BRAKE_THRES));
-      input2[inIdx].cmd = MIN(brakeVal, ramp);
+    // ---- Compute signed brakeVal that always opposes motion, fades with speed ----
+    // EXPLAIN: speedBlend is Q15 (0..32767). ELECTRIC_BRAKE_MAX is in “input command” units.
+    if (speedAvg > 0) {
+        brakeVal = (int16_t)((-ELECTRIC_BRAKE_MAX * speedBlend) >> 15);
+    } else {
+        brakeVal = (int16_t)(( ELECTRIC_BRAKE_MAX * speedBlend) >> 15);
     }
-  #endif
+
+    // Optional: flip if your logical direction was toggled elsewhere
+    if (reverseDir) {
+        brakeVal = (int16_t)(-brakeVal);
+    }
+
+    // ---- Blend EB into the SPEED channel (input2) only, using your existing thresholds ----
+    // EXPLAIN: This is your original section (E), unchanged.
+    if (speedCmd >= 0 && speedCmd < ELECTRIC_BRAKE_THRES) {
+        // throttle small positive → approach brakeVal from 0 as we near neutral
+        int16_t blend = (int16_t)(((int32_t)(ELECTRIC_BRAKE_THRES - speedCmd) * brakeVal) / ELECTRIC_BRAKE_THRES);
+        input2[inIdx].cmd = MAX(brakeVal, blend);
+    } else if (speedCmd >= -ELECTRIC_BRAKE_THRES && speedCmd < 0) {
+        // throttle small negative → approach brakeVal from 0 as we near neutral
+        int16_t blend = (int16_t)(((int32_t)(ELECTRIC_BRAKE_THRES + speedCmd) * brakeVal) / ELECTRIC_BRAKE_THRES);
+        input2[inIdx].cmd = MIN(brakeVal, blend);
+    } else if (speedCmd >= ELECTRIC_BRAKE_THRES) {
+        // clear positive throttle → ensure continuity crossing into EB region
+        int16_t ramp = (int16_t)(((int32_t)(speedCmd - ELECTRIC_BRAKE_THRES) * INPUT_MAX) /
+                                 (INPUT_MAX - ELECTRIC_BRAKE_THRES));
+        input2[inIdx].cmd = MAX(brakeVal, ramp);
+    } else { // speedCmd < -ELECTRIC_BRAKE_THRES
+        // clear negative throttle → ensure continuity crossing into EB region
+        int16_t ramp = (int16_t)(((int32_t)(speedCmd + ELECTRIC_BRAKE_THRES) * INPUT_MIN) /
+                                 (INPUT_MIN + ELECTRIC_BRAKE_THRES));
+        input2[inIdx].cmd = MIN(brakeVal, ramp);
+    }
+#endif
 }
 
-
- /*
+/*
  * Cruise Control Function
  * This function activates/deactivates cruise control.
  * 
