@@ -173,7 +173,7 @@
  #define ELECTRIC_BRAKE_MAX    220      // (0, 500) Maximum electric brake to be applied when input torque request is 0 (pedal fully released).
  #define ELECTRIC_BRAKE_THRES  160       // (0, 500) Threshold below at which the electric brake starts engaging.
  #define ELECTRIC_BRAKE_STEER_NEUTRAL  120   // steer “neutral” window (command units)
- #define ELECTRIC_BRAKE_SPEED_NEUTRAL  80   // speed “neutral” window (command units)
+ #define ELECTRIC_BRAKE_SPEED_NEUTRAL  120   // speed “neutral” window (command units)
  
 // Variables for "Anti-Sticktion" of Ebrake and Standstill Hold at zero throttle
 // #define STICKTION_SPEED_NEUTRAL_Q4   (10 << 4) 
