@@ -730,6 +730,15 @@ void electricBrake(uint16_t speedBlend, uint8_t reverseDir) {
     const int16_t speedCmd = input2[inIdx].cmd;   // throttle (− reverse, + forward)
     const int16_t steerCmd = input1[inIdx].cmd;   // steering (− left, + right)
 
+    #ifndef EB_REVERSE_SKIP_SPEED
+    #define EB_REVERSE_SKIP_SPEED  120   // “stopped” speed threshold (tune 80–150)
+    #endif
+
+    // If we’re basically stopped AND driver is commanding reverse, skip EB
+    if ((speedAvgAbs < EB_REVERSE_SKIP_SPEED) && (speedCmd < 0)) {
+      return;
+    }
+
     // ---- SKIP EB when steering or reverse is requested (prevents “grinding” at pivots/reverse) ----
     // (Use small neutral windows so normal forward coasting still gets EB.)
     #ifndef ELECTRIC_BRAKE_SPEED_NEUTRAL
