@@ -731,13 +731,32 @@ void electricBrake(uint16_t speedBlend, uint8_t reverseDir) {
     const int16_t steerCmd = input1[inIdx].cmd;   // steering (− left, + right)
 
     #ifndef EB_REVERSE_SKIP_SPEED
-    #define EB_REVERSE_SKIP_SPEED  120   // “stopped” speed threshold (tune 80–150)
+    #define EB_REVERSE_SKIP_SPEED      150   // “stopped” speed threshold (you’re using 150)
+    #endif
+    #ifndef EB_REVERSE_INHIBIT_TICKS
+    #define EB_REVERSE_INHIBIT_TICKS    80   // ~80 control cycles (tune 60–120)
+    #endif
+    #ifndef EB_REVERSE_CMD_NEUTRAL
+    #define EB_REVERSE_CMD_NEUTRAL      10   // any negative beyond this = reverse intent
     #endif
 
-    // If we’re basically stopped AND driver is commanding reverse, skip EB
-    if ((speedAvgAbs < EB_REVERSE_SKIP_SPEED) && (speedCmd < 0)) {
-      return;
+    // Reverse-onset EB inhibit: start a short EB-free window when reverse is first requested at ~0 speed
+    static uint16_t eb_rev_inhibit = 0;
+    if ((speedAvgAbs < EB_REVERSE_SKIP_SPEED) && (speedCmd < -EB_REVERSE_CMD_NEUTRAL)) {
+    eb_rev_inhibit = EB_REVERSE_INHIBIT_TICKS;   // arm the inhibit
     }
+
+    // During the inhibit window, skip EB entirely (prevents that initial “grind”)
+    if (eb_rev_inhibit) {
+    eb_rev_inhibit--;
+    return;
+    }
+
+    // Steady-state guard: while basically stopped AND commanding reverse, skip EB
+    if ((speedAvgAbs < EB_REVERSE_SKIP_SPEED) && (speedCmd < 0)) {
+    return;
+    }
+
 
     // ---- SKIP EB when steering or reverse is requested (prevents “grinding” at pivots/reverse) ----
     // (Use small neutral windows so normal forward coasting still gets EB.)
