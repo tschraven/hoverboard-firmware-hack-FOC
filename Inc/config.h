@@ -184,7 +184,7 @@
 // --- Soft-pivot boost (helps initiate a turn from zero speed) ---
 #define PIVOT_SPEED_NEUTRAL   20   // |speed| below this (in cmd units) = “near zero”
 #define PIVOT_STEER_MIN      60   // need at least this steering command to trigger
-#define PIVOT_BOOST          50   // how much steering bias to add (in cmd units)
+#define PIVOT_BOOST          60   // how much steering bias to add (in cmd units)
 
 
  // ########################### END OF MOTOR CONTROL ########################
