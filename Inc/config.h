@@ -174,7 +174,7 @@
  #define ELECTRIC_BRAKE_THRES  160       // (0, 500) Threshold below at which the electric brake starts engaging.
  #define ELECTRIC_BRAKE_STEER_NEUTRAL  120   // steer “neutral” window (command units)
  #define ELECTRIC_BRAKE_SPEED_NEUTRAL  120   // speed “neutral” window (command units)
- #define EB_REVERSE_SKIP_SPEED  120   // “stopped” speed threshold (tune 80–150)
+ #define EB_REVERSE_SKIP_SPEED  150   // “stopped” speed threshold (tune 80–150)
 
 // Variables for "Anti-Sticktion" of Ebrake and Standstill Hold at zero throttle
 // #define STICKTION_SPEED_NEUTRAL_Q4   (10 << 4) 
