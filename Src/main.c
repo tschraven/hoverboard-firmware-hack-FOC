@@ -169,6 +169,64 @@ static uint16_t rate = RATE; // Adjustable rate to support multiple drive modes 
   static uint16_t max_speed;
 #endif
 
+/* --------- Speed-dependent steering helpers (drop-in) --------- */
+/* Safe defaults if you haven’t added them to config.h yet */
+#ifndef WHEEL_DIAMETER_MM
+#define WHEEL_DIAMETER_MM          216     // ~8.5" wheel
+#endif
+#ifndef GEAR_RATIO_NUM
+#define GEAR_RATIO_NUM             1
+#endif
+#ifndef GEAR_RATIO_DEN
+#define GEAR_RATIO_DEN             1
+#endif
+#ifndef VEHICLE_MAX_SPEED_MPH
+#define VEHICLE_MAX_SPEED_MPH      5.0f
+#endif
+#ifndef STEER_SOFTEN_START_MPH
+#define STEER_SOFTEN_START_MPH     1.5f    // start softening
+#endif
+#ifndef STEER_SOFTEN_FULL_MPH
+#define STEER_SOFTEN_FULL_MPH      4.0f    // full softening
+#endif
+#ifndef STEER_SOFTEN_MIN_GAIN_Q15
+#define STEER_SOFTEN_MIN_GAIN_Q15  14746   // ~0.45 in Q15
+#endif
+
+/* Q15 multiply */
+static inline int16_t q15_mul(int16_t a_q15, int16_t b_q15) {
+    return (int16_t)(((int32_t)a_q15 * (int32_t)b_q15) >> 15);
+}
+
+/* rpm -> mph using wheel size & gear ratio */
+static float rpm_to_mph(float rpm) {
+    const float circ_m   = 3.14159265358979f * (WHEEL_DIAMETER_MM / 1000.0f);
+    const float wheel_rpm= rpm * ((float)GEAR_RATIO_DEN / (float)GEAR_RATIO_NUM);
+    const float m_per_min= wheel_rpm * circ_m;
+    const float mph      = (m_per_min * 60.0f) / 1609.344f;
+    return mph;
+}
+
+/* compute steering gain (Q15) based on mph */
+static int16_t steer_soften_gain_q15(float mph) {
+    if (mph <= STEER_SOFTEN_START_MPH) return 32767;                     // 1.0
+    if (mph >= STEER_SOFTEN_FULL_MPH)  return STEER_SOFTEN_MIN_GAIN_Q15; // min
+
+    const float span = (STEER_SOFTEN_FULL_MPH - STEER_SOFTEN_START_MPH);
+    float t = (STEER_SOFTEN_FULL_MPH - mph) / span;   // [0..1]
+    if (t < 0) t = 0; if (t > 1) t = 1;
+
+    const int16_t one_q15 = 32767;
+    const int16_t min_q15 = STEER_SOFTEN_MIN_GAIN_Q15;
+    const int16_t one_minus_min = one_q15 - min_q15;
+
+    int16_t t_q15 = (int16_t)(t * 32767.0f + 0.5f);
+    int16_t scaled = q15_mul(t_q15, one_minus_min);
+    return (int16_t)(min_q15 + scaled);
+}
+
+/* --------- end helpers --------- */
+
 
 int main(void) {
 
@@ -376,8 +434,22 @@ int main(void) {
         cmdL = steer; 
         cmdR = speed;
       #else 
-        // ####### MIXER #######
-        mixerFcn(speed << 4, steer << 4, &cmdR, &cmdL);   // This function implements the equations above
+      // ---- Speed-dependent steering softening (uses real measured speed) ----
+      // calcAvgSpeed() already ran earlier this loop, giving us speedAvgAbs (rpm).
+      // Convert measured average rpm -> mph, then compute Q15 gain for steer.
+      {
+        float veh_mph  = rpm_to_mph((float)speedAvgAbs);
+        int16_t g_q15  = steer_soften_gain_q15(veh_mph);
+
+        // scale steering (int16) by Q15 gain; keep speed unchanged
+        int32_t s = ((int32_t)steer * (int32_t)g_q15) >> 15;
+        if (s >  32767) s =  32767;       // saturate
+        if (s < -32768) s = -32768;
+        steer = (int16_t)s;
+      }
+
+      // ####### MIXER #######
+        mixerFcn(speed << 4, steer << 4, &cmdR, &cmdL);
       #endif
 
 

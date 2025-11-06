@@ -180,15 +180,26 @@
   #define EB_REVERSE_INHIBIT_TICKS    120   // ~80 control cycles (tune 60–120)
   #define EB_REVERSE_CMD_NEUTRAL      10   // any negative beyond this = reverse intent
 
-// Variables for "Anti-Sticktion" of Ebrake and Standstill Hold at zero throttle
-// #define STICKTION_SPEED_NEUTRAL_Q4   (10 << 4) 
-// #define STICKTION_STEER_THRESH_Q4    (80 << 4)
-// #define STICKTION_NUDGE_Q4           (12 << 4)
-
 // --- Soft-pivot boost (helps initiate a turn from zero speed) ---
-#define PIVOT_SPEED_NEUTRAL   20   // |speed| below this (in cmd units) = “near zero”
-#define PIVOT_STEER_MIN      60   // need at least this steering command to trigger
-#define PIVOT_BOOST          60   // how much steering bias to add (in cmd units)
+  #define PIVOT_SPEED_NEUTRAL   20   // |speed| below this (in cmd units) = “near zero”
+  #define PIVOT_STEER_MIN      60   // need at least this steering command to trigger
+  #define PIVOT_BOOST          60   // how much steering bias to add (in cmd units)
+
+// ======== Speed-Dependent Steering (vehicle-level) ========
+// Wheel+drive facts (edit if yours differ)
+  #define WHEEL_DIAMETER_MM          216     // 8.5" nominal = ~216 mm. Set to your real wheel.
+  #define GEAR_RATIO_NUM             1       // motor:wheel ratio numerator
+  #define GEAR_RATIO_DEN             1       // …and denominator (1:1 if direct)
+
+// Vehicle speed limit (for reference / sanity)
+  #define VEHICLE_MAX_SPEED_MPH      5.0f    // your target top speed
+
+// Steering soften thresholds (mph)
+  #define STEER_SOFTEN_START_MPH     1.5f    // below this: no softening (gain = 1.0)
+  #define STEER_SOFTEN_FULL_MPH      4.0f    // at/above this: full softening applied
+
+// Minimum steering gain at/above FULL (Q15). 0.45 -> 14746
+  #define STEER_SOFTEN_MIN_GAIN_Q15  14746   // = round(0.45 * 32768)
 
 
  // ########################### END OF MOTOR CONTROL ########################
