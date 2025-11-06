@@ -192,11 +192,11 @@
   #define GEAR_RATIO_DEN             1       // …and denominator (1:1 if direct)
 
 // Vehicle speed limit (for reference / sanity)
-  #define VEHICLE_MAX_SPEED_MPH      3.5f    // your target top speed
+  #define VEHICLE_MAX_SPEED_MPH      3.0f    // your target top speed
 
 // Steering soften thresholds (mph)
-  #define STEER_SOFTEN_START_MPH     1.0f    // below this: no softening (gain = 1.0)
-  #define STEER_SOFTEN_FULL_MPH      3.0f    // at/above this: full softening applied
+  #define STEER_SOFTEN_START_MPH     0.25f    // below this: no softening (gain = 1.0)
+  #define STEER_SOFTEN_FULL_MPH      1.0f    // at/above this: full softening applied
 
 // Minimum steering gain at/above FULL (Q15). 0.45 -> 14746
   #define STEER_SOFTEN_MIN_GAIN_Q15  3277   // = round(0.45 * 32768)
