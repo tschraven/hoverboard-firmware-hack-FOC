@@ -180,16 +180,16 @@
   #define EB_REVERSE_INHIBIT_TICKS    120   // ~80 control cycles (tune 60–120)
   #define EB_REVERSE_CMD_NEUTRAL      10   // any negative beyond this = reverse intent
 
-// Variables for "Anti-Sticktion" of Ebrake and Standstill Hold at zero throttle
-// #define STICKTION_SPEED_NEUTRAL_Q4   (10 << 4) 
-// #define STICKTION_STEER_THRESH_Q4    (80 << 4)
-// #define STICKTION_NUDGE_Q4           (12 << 4)
-
 // --- Soft-pivot boost (helps initiate a turn from zero speed) ---
 #define PIVOT_SPEED_NEUTRAL   20   // |speed| below this (in cmd units) = “near zero”
 #define PIVOT_STEER_MIN      60   // need at least this steering command to trigger
 #define PIVOT_BOOST          60   // how much steering bias to add (in cmd units)
 
+// --- Speed-dependent steering (gain schedule) ---
+// Units match 'speed' in main.c after >>16 (int16_t command units)
+#define STEER_SOFTEN_START     200   // |speed| where softening begins
+#define STEER_SOFTEN_FULL      500   // |speed| where softening is maxed
+#define STEER_MIN_GAIN_Q15    8192  // min steering gain at high speed (Q15: 16384=0.5, 12288≈0.375, 8192=0.25)
 
  // ########################### END OF MOTOR CONTROL ########################
 

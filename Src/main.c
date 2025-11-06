@@ -348,8 +348,47 @@ int main(void) {
       if (s >  32767) s =  32767;
       if (s < -32768) s = -32768;
       steer = (int16_t)s;
-    }
+      }
       /* ---- end soft pivot boost ---- */
+
+      /* ---- Speed-dependent steering (gain schedule) --------------------------- */
+      #ifndef STEER_SOFTEN_START
+      #define STEER_SOFTEN_START   150
+      #endif
+      #ifndef STEER_SOFTEN_FULL
+      #define STEER_SOFTEN_FULL    400
+      #endif
+      #ifndef STEER_MIN_GAIN_Q15
+      #define STEER_MIN_GAIN_Q15 16384   /* 0.5 in Q15 */
+      #endif
+
+      {
+        // 'speed' and 'steer' are your filtered int16 commands (after >>16)
+        int16_t a = (speed >= 0) ? speed : (int16_t)(-speed);   // abs(speed)
+        int16_t start = STEER_SOFTEN_START;
+        int16_t full  = STEER_SOFTEN_FULL;
+
+        // Default: full gain (Q15 = 32767)
+        int32_t gainQ15 = 32767;
+
+        if (a >= full) {
+          gainQ15 = STEER_MIN_GAIN_Q15;                 // at/above FULL → min gain
+        } else if (a > start) {
+          // Linear fade: 1.0 → MIN over [start, full]
+          int32_t span  = (int32_t)(full - start); if (span < 1) span = 1;
+          int32_t tQ15  = ((int32_t)(a - start) * 32767) / span;         // 0..1 (Q15)
+          int32_t minQ15= STEER_MIN_GAIN_Q15;
+          gainQ15 = 32767 - (((32767 - minQ15) * tQ15) >> 15);           // lerp in Q15
+        }
+
+        // Apply gain to steering (saturate to int16)
+        int32_t s = ((int32_t)steer * gainQ15) >> 15;
+        if (s >  32767) s =  32767;
+        if (s < -32768) s = -32768;
+        steer = (int16_t)s;
+      }
+      /* ---- end speed-dependent steering -------------------------------------- */
+
       // ---------------------------------------------------------------------------
   
       // ####### VARIANT_HOVERCAR #######
