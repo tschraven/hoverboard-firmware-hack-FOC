@@ -170,8 +170,8 @@
   #define STANDSTILL_STEER_NEUTRAL   20   // Neutral thresholds for Standstill Hold, command units, ~small steer wiggle allowed
   #define STANDSTILL_SPEED_NEUTRAL   20   // Neutral thresholds for Standstill Hold, command units, ~tiny throttle wiggle allowed
 #define ELECTRIC_BRAKE_ENABLE           // [-] Flag to enable electric brake and replace the motor "freewheel" with a constant braking when the input torque request is 0. Only available and makes sense for TORQUE mode.
- #define ELECTRIC_BRAKE_MAX    220      // (0, 500) Maximum electric brake to be applied when input torque request is 0 (pedal fully released).
- #define ELECTRIC_BRAKE_THRES  160       // (0, 500) Threshold below at which the electric brake starts engaging.
+ #define ELECTRIC_BRAKE_MAX    250      // (0, 500) Maximum electric brake to be applied when input torque request is 0 (pedal fully released).
+ #define ELECTRIC_BRAKE_THRES  200       // (0, 500) Threshold below at which the electric brake starts engaging.
  #define ELECTRIC_BRAKE_STEER_NEUTRAL  120   // steer “neutral” window (command units)
  #define ELECTRIC_BRAKE_SPEED_NEUTRAL  120   // speed “neutral” window (command units)
  
@@ -195,8 +195,8 @@
   #define VEHICLE_MAX_SPEED_MPH      3.0f    // your target top speed
 
 // Steering soften thresholds (mph)
-  #define STEER_SOFTEN_START_MPH     0.25f    // below this: no softening (gain = 1.0)
-  #define STEER_SOFTEN_FULL_MPH      1.0f    // at/above this: full softening applied
+  #define STEER_SOFTEN_START_MPH     .5f    // below this: no softening (gain = 1.0)
+  #define STEER_SOFTEN_FULL_MPH      1.5f    // at/above this: full softening applied
 
 // Minimum steering gain at/above FULL (Q15). 0.45 -> 14746
   #define STEER_SOFTEN_MIN_GAIN_Q15  3277   // = round(0.45 * 32768)
