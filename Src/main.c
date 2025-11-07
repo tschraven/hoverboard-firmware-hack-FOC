@@ -375,7 +375,7 @@ int main(void) {
       // if (s >  32767) s =  32767;
       // if (s < -32768) s = -32768;
       // steer = (int16_t)s;
-    }
+    // }
       /* ---- end soft pivot boost ---- */
       // ---------------------------------------------------------------------------
   
@@ -702,8 +702,9 @@ int main(void) {
     inIdx_prev = inIdx;
     buzzerTimer_prev = buzzerTimer;
     main_loop_counter++;
+  
   }
-
+}
 
 
 
