@@ -191,15 +191,12 @@
   #define GEAR_RATIO_NUM             1       // motor:wheel ratio numerator
   #define GEAR_RATIO_DEN             1       // …and denominator (1:1 if direct)
 
-// Vehicle speed limit (for reference / sanity)
-  #define VEHICLE_MAX_SPEED_MPH      3.0f    // your target top speed
-
-// Steering soften thresholds (mph)
-  #define STEER_SOFTEN_START_MPH     1.0f    // below this: no softening (gain = 1.0)
-  #define STEER_SOFTEN_FULL_MPH      2.5f    // at/above this: full softening applied
-
-// Minimum steering gain at/above FULL (Q15). 0.45 -> 14746
-  #define STEER_SOFTEN_MIN_GAIN_Q15  32768   // = round(0.45 * 32768)
+// ---- Steering safety shaping (caps & slew vs. speed) ----
+  #define STEER_CAP_START_MPH         1.0f     // below: no cap/slew
+  #define STEER_CAP_FULL_MPH          3.0f     // above: strongest cap/slew
+  #define STEER_CAP_FULLSPD_MAG       350      // ±max steer at speed ([-1000..1000])
+  #define STEER_SLEW_LOWSPD           9999     // near zero mph: essentially no extra slew
+  #define STEER_SLEW_FULLSPD          40       // at/above FULL mph: slow changes allowed
 
 
  // ########################### END OF MOTOR CONTROL ########################

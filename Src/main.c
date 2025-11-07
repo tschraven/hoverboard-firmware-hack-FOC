@@ -169,8 +169,7 @@ static uint16_t rate = RATE; // Adjustable rate to support multiple drive modes 
   static uint16_t max_speed;
 #endif
 
-/* --------- Speed-dependent steering helpers (drop-in) --------- */
-/* Safe defaults if you haven’t added them to config.h yet */
+/* --------- Vehicle speed helpers (kept) --------- */
 #ifndef WHEEL_DIAMETER_MM
 #define WHEEL_DIAMETER_MM          216     // ~8.5" wheel
 #endif
@@ -180,49 +179,19 @@ static uint16_t rate = RATE; // Adjustable rate to support multiple drive modes 
 #ifndef GEAR_RATIO_DEN
 #define GEAR_RATIO_DEN             1
 #endif
-#ifndef VEHICLE_MAX_SPEED_MPH
-#define VEHICLE_MAX_SPEED_MPH      5.0f
-#endif
-#ifndef STEER_SOFTEN_START_MPH
-#define STEER_SOFTEN_START_MPH     1.5f    // start softening
-#endif
-#ifndef STEER_SOFTEN_FULL_MPH
-#define STEER_SOFTEN_FULL_MPH      4.0f    // full softening
-#endif
-#ifndef STEER_SOFTEN_MIN_GAIN_Q15
-#define STEER_SOFTEN_MIN_GAIN_Q15  14746   // ~0.45 in Q15
-#endif
-
-/* Q15 multiply */
-static inline int16_t q15_mul(int16_t a_q15, int16_t b_q15) {
-    return (int16_t)(((int32_t)a_q15 * (int32_t)b_q15) >> 15);
-}
 
 /* rpm -> mph using wheel size & gear ratio */
 static float rpm_to_mph(float rpm) {
-    const float circ_m   = 3.14159265358979f * (WHEEL_DIAMETER_MM / 1000.0f);
-    const float wheel_rpm= rpm * ((float)GEAR_RATIO_DEN / (float)GEAR_RATIO_NUM);
-    const float m_per_min= wheel_rpm * circ_m;
-    const float mph      = (m_per_min * 60.0f) / 1609.344f;
-    return mph;
+    const float circ_m    = 3.14159265358979f * (WHEEL_DIAMETER_MM / 1000.0f);
+    const float wheel_rpm = rpm * ((float)GEAR_RATIO_DEN / (float)GEAR_RATIO_NUM);
+    const float m_per_min = wheel_rpm * circ_m;
+    return (m_per_min * 60.0f) / 1609.344f;
 }
 
-/* compute steering gain (Q15) based on mph */
-static int16_t steer_soften_gain_q15(float mph) {
-    if (mph <= STEER_SOFTEN_START_MPH) return 32767;                     // 1.0
-    if (mph >= STEER_SOFTEN_FULL_MPH)  return STEER_SOFTEN_MIN_GAIN_Q15; // min
-
-    const float span = (STEER_SOFTEN_FULL_MPH - STEER_SOFTEN_START_MPH);
-    float t = (STEER_SOFTEN_FULL_MPH - mph) / span;   // [0..1]
-    if (t < 0) t = 0; if (t > 1) t = 1;
-
-    const int16_t one_q15 = 32767;
-    const int16_t min_q15 = STEER_SOFTEN_MIN_GAIN_Q15;
-    const int16_t one_minus_min = one_q15 - min_q15;
-
-    int16_t t_q15 = (int16_t)(t * 32767.0f + 0.5f);
-    int16_t scaled = q15_mul(t_q15, one_minus_min);
-    return (int16_t)(min_q15 + scaled);
+/* tiny linear interpolation helper for int16 with Q15 t */
+static inline int16_t lerp_i16(int16_t a, int16_t b, int16_t t_q15) {
+    int32_t diff = (int32_t)b - (int32_t)a;
+    return (int16_t)(a + ((diff * t_q15) >> 15));
 }
 
 /* --------- end helpers --------- */
@@ -434,21 +403,37 @@ int main(void) {
         cmdL = steer; 
         cmdR = speed;
       #else 
-      // ---- Speed-dependent steering softening (uses real measured speed) ----
-      // calcAvgSpeed() already ran earlier this loop, giving us speedAvgAbs (rpm).
-      // Convert measured average rpm -> mph, then compute Q15 gain for steer.
-      {
-        float veh_mph  = rpm_to_mph((float)speedAvgAbs);
-        int16_t g_q15  = steer_soften_gain_q15(veh_mph);
+    // ---- Speed-based steering safety shaping (magnitude cap + extra slew) ----
+    {
+      float  veh_mph = rpm_to_mph((float)speedAvgAbs); // uses measured speed (preferred)
 
-        // scale steering (int16) by Q15 gain; keep speed unchanged
-        int32_t s = ((int32_t)steer * (int32_t)g_q15) >> 15;
-        if (s >  32767) s =  32767;       // saturate
-        if (s < -32768) s = -32768;
-        steer = (int16_t)s;
+      float  span    = (STEER_CAP_FULL_MPH - STEER_CAP_START_MPH);
+      float  t_f     = (veh_mph <= STEER_CAP_START_MPH) ? 0.0f :
+                      (veh_mph >= STEER_CAP_FULL_MPH)  ? 1.0f :
+                      (veh_mph - STEER_CAP_START_MPH) / span;
+      if (t_f < 0.0f) t_f = 0.0f; if (t_f > 1.0f) t_f = 1.0f;
+      int16_t t_q15  = (int16_t)(t_f * 32767.0f + 0.5f);
+
+      // 1) cap steering magnitude vs speed
+      int16_t max_low     = 1000;
+      int16_t max_high    = STEER_CAP_FULLSPD_MAG;
+      int16_t max_allowed = lerp_i16(max_low, max_high, t_q15);
+
+      int16_t s_abs = (steer >= 0) ? steer : (int16_t)(-steer);
+      if (s_abs > max_allowed) {
+        steer = (steer >= 0) ? max_allowed : (int16_t)(-max_allowed);
       }
 
-      // ####### MIXER #######
+      // 2) extra speed-based slew on steering only
+      static int16_t steer_slew_state = 0;
+      int16_t slew_low  = STEER_SLEW_LOWSPD;
+      int16_t slew_high = STEER_SLEW_FULLSPD;
+      int16_t slew_rate = lerp_i16(slew_low, slew_high, t_q15);
+
+      rateLimiter16(steer, slew_rate, &steer_slew_state);
+      steer = steer_slew_state;
+    }
+    // ####### MIXER #######
         mixerFcn(speed << 4, steer << 4, &cmdR, &cmdL);
       #endif
 
