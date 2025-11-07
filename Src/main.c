@@ -354,27 +354,27 @@ int main(void) {
       /* ---- Soft pivot boost (minimal, smooth) ----
       * Only when throttle ~0 and steer is clear, gently increase steer.
       */
-      #ifndef PIVOT_SPEED_NEUTRAL
-      #define PIVOT_SPEED_NEUTRAL   10   // |speed| < 10 => off-throttle
-      #endif
-      #ifndef PIVOT_STEER_MIN
-      #define PIVOT_STEER_MIN       60   // need at least this steer to trigger
-      #endif
-      #ifndef PIVOT_BOOST
-      #define PIVOT_BOOST           50   // how much steer to add (same units as 'steer')
-      #endif
+      // #ifndef PIVOT_SPEED_NEUTRAL
+      // #define PIVOT_SPEED_NEUTRAL   10   // |speed| < 10 => off-throttle
+      // #endif
+      // #ifndef PIVOT_STEER_MIN
+      // #define PIVOT_STEER_MIN       60   // need at least this steer to trigger
+      // #endif
+      // #ifndef PIVOT_BOOST
+      // #define PIVOT_BOOST           50   // how much steer to add (same units as 'steer')
+      // #endif
 
       /* abs for int16 without helpers */
-      int16_t abs_speed = (speed >= 0) ? speed : (int16_t)(-speed);
-      int16_t abs_steer = (steer >= 0) ? steer : (int16_t)(-steer);
+      // int16_t abs_speed = (speed >= 0) ? speed : (int16_t)(-speed);
+      // int16_t abs_steer = (steer >= 0) ? steer : (int16_t)(-steer);
 
-      if (abs_speed < PIVOT_SPEED_NEUTRAL && abs_steer > PIVOT_STEER_MIN) {
-      int16_t boost = (steer >= 0) ? PIVOT_BOOST : (int16_t)(-PIVOT_BOOST);
+      // if (abs_speed < PIVOT_SPEED_NEUTRAL && abs_steer > PIVOT_STEER_MIN) {
+      // int16_t boost = (steer >= 0) ? PIVOT_BOOST : (int16_t)(-PIVOT_BOOST);
       /* saturating add without helpers */
-      int32_t s = (int32_t)steer + (int32_t)boost;
-      if (s >  32767) s =  32767;
-      if (s < -32768) s = -32768;
-      steer = (int16_t)s;
+      // int32_t s = (int32_t)steer + (int32_t)boost;
+      // if (s >  32767) s =  32767;
+      // if (s < -32768) s = -32768;
+      // steer = (int16_t)s;
     }
       /* ---- end soft pivot boost ---- */
       // ---------------------------------------------------------------------------
@@ -424,15 +424,28 @@ int main(void) {
         steer = (steer >= 0) ? max_allowed : (int16_t)(-max_allowed);
       }
 
-      // 2) extra speed-based slew on steering only
-      static int16_t steer_slew_state = 0;
-      int16_t slew_low  = STEER_SLEW_LOWSPD;
-      int16_t slew_high = STEER_SLEW_FULLSPD;
-      int16_t slew_rate = lerp_i16(slew_low, slew_high, t_q15);
+      // 2) speed-dependent extra slew on steering only  (Limiter is Q4-based!)
+      static int16_t steer_slew_state_q4 = 0;
+      static uint8_t steer_slew_init = 0;
 
-      rateLimiter16(steer, slew_rate, &steer_slew_state);
-      steer = steer_slew_state;
+      int16_t slew_low_counts  = STEER_SLEW_LOWSPD;     // counts/loop in plain units
+      int16_t slew_high_counts = STEER_SLEW_FULLSPD;    // counts/loop in plain units
+      int16_t slew_counts      = lerp_i16(slew_low_counts, slew_high_counts, t_q15);
+
+      // Convert desired counts/loop to Q4 for the limiter
+      int16_t slew_rate_q4 = (int16_t)(slew_counts << 4);
+
+      // One-time init: set limiter state to current steer (in Q4) to avoid a “kick”
+      if (!steer_slew_init) {
+        steer_slew_state_q4 = (int16_t)(steer << 4);
+        steer_slew_init = 1;
+      }
+
+      // Run limiter in Q4 domain, then convert back to plain int16 for 'steer'
+      rateLimiter16(steer, slew_rate_q4, &steer_slew_state_q4);   // u=plain, y=Q4
+      steer = (int16_t)(steer_slew_state_q4 >> 4);
     }
+
     // ####### MIXER #######
         mixerFcn(speed << 4, steer << 4, &cmdR, &cmdL);
       #endif
