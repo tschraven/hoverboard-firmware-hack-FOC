@@ -182,16 +182,16 @@ static uint16_t rate = RATE; // Adjustable rate to support multiple drive modes 
 
 /* rpm -> mph using wheel size & gear ratio */
 static float rpm_to_mph(float rpm) {
-    const float circ_m    = 3.14159265358979f * (WHEEL_DIAMETER_MM / 1000.0f);
-    const float wheel_rpm = rpm * ((float)GEAR_RATIO_DEN / (float)GEAR_RATIO_NUM);
-    const float m_per_min = wheel_rpm * circ_m;
-    return (m_per_min * 60.0f) / 1609.344f;
+  const float circ_m    = 3.14159265358979f * (WHEEL_DIAMETER_MM / 1000.0f);
+  const float wheel_rpm = rpm * ((float)GEAR_RATIO_DEN / (float)GEAR_RATIO_NUM);
+  const float m_per_min = wheel_rpm * circ_m;
+  return (m_per_min * 60.0f) / 1609.344f;
 }
 
 /* tiny linear interpolation helper for int16 with Q15 t */
 static inline int16_t lerp_i16(int16_t a, int16_t b, int16_t t_q15) {
-    int32_t diff = (int32_t)b - (int32_t)a;
-    return (int16_t)(a + ((diff * t_q15) >> 15));
+  int32_t diff = (int32_t)b - (int32_t)a;
+  return (int16_t)(a + ((diff * t_q15) >> 15));
 }
 
 /* --------- end helpers --------- */
@@ -351,6 +351,7 @@ int main(void) {
       steer = (int16_t)(steerFixdt >> 16);
       speed = (int16_t)(speedFixdt >> 16);
     
+      #if 0   // --- TEMP: disable soft pivot boost cleanly ---
       /* ---- Soft pivot boost (minimal, smooth) ----
       * Only when throttle ~0 and steer is clear, gently increase steer.
       */
@@ -377,6 +378,7 @@ int main(void) {
       steer = (int16_t)s;
     }
       /* ---- end soft pivot boost ---- */
+      #endif  // --- end TEMP ---
       // ---------------------------------------------------------------------------
   
       // ####### VARIANT_HOVERCAR #######
@@ -405,14 +407,17 @@ int main(void) {
       #else 
     // ---- Speed-based steering safety shaping (magnitude cap + extra slew) ----
     {
-      float  veh_mph = rpm_to_mph((float)speedAvgAbs); // uses measured speed (preferred)
+      // Use measured speed (already computed earlier as speedAvgAbs in rpm)
+      float veh_mph = rpm_to_mph((float)speedAvgAbs);
 
-      float  span    = (STEER_CAP_FULL_MPH - STEER_CAP_START_MPH);
-      float  t_f     = (veh_mph <= STEER_CAP_START_MPH) ? 0.0f :
-                      (veh_mph >= STEER_CAP_FULL_MPH)  ? 1.0f :
-                      (veh_mph - STEER_CAP_START_MPH) / span;
-      if (t_f < 0.0f) t_f = 0.0f; if (t_f > 1.0f) t_f = 1.0f;
-      int16_t t_q15  = (int16_t)(t_f * 32767.0f + 0.5f);
+      float span = (STEER_CAP_FULL_MPH - STEER_CAP_START_MPH);
+      float t_f  = (veh_mph <= STEER_CAP_START_MPH) ? 0.0f :
+                   (veh_mph >= STEER_CAP_FULL_MPH)  ? 1.0f :
+                    (veh_mph - STEER_CAP_START_MPH) / span;
+      if (t_f < 0.0f) t_f = 0.0f;
+      if (t_f > 1.0f) t_f = 1.0f;
+
+      int16_t t_q15 = (int16_t)(t_f * 32767.0f + 0.5f);
 
       // 1) cap steering magnitude vs speed
       int16_t max_low     = 1000;
@@ -424,19 +429,28 @@ int main(void) {
         steer = (steer >= 0) ? max_allowed : (int16_t)(-max_allowed);
       }
 
-      // 2) extra speed-based slew on steering only
-      static int16_t steer_slew_state = 0;
-      int16_t slew_low  = STEER_SLEW_LOWSPD;
-      int16_t slew_high = STEER_SLEW_FULLSPD;
-      int16_t slew_rate = lerp_i16(slew_low, slew_high, t_q15);
+      // 2) extra speed-based slew (Limiter uses Q4 internal state!)
+      static int16_t steer_slew_state_q4 = 0;
+      static uint8_t steer_slew_init     = 0;
 
-      rateLimiter16(steer, slew_rate, &steer_slew_state);
-      steer = steer_slew_state;
+      int16_t slew_low_counts  = STEER_SLEW_LOWSPD;   // counts/loop (plain)
+      int16_t slew_high_counts = STEER_SLEW_FULLSPD;
+      int16_t slew_counts      = lerp_i16(slew_low_counts, slew_high_counts, t_q15);
+      int16_t slew_rate_q4     = (int16_t)(slew_counts << 4);  // convert to Q4
+
+      if (!steer_slew_init) {
+        steer_slew_state_q4 = (int16_t)(steer << 4);  // init in Q4 to avoid jump
+        steer_slew_init = 1;
+      }
+
+      // rateLimiter16 takes 'u' in plain counts, internal 'y' in Q4
+      rateLimiter16(steer, slew_rate_q4, &steer_slew_state_q4);
+      steer = (int16_t)(steer_slew_state_q4 >> 4);    // back to plain
     }
+
     // ####### MIXER #######
         mixerFcn(speed << 4, steer << 4, &cmdR, &cmdL);
       #endif
-
 
       // ####### SET OUTPUTS (if the target change is less than +/- 100) #######
       #ifdef INVERT_R_DIRECTION
