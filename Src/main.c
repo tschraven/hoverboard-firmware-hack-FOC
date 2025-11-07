@@ -375,7 +375,7 @@ int main(void) {
       // if (s >  32767) s =  32767;
       // if (s < -32768) s = -32768;
       // steer = (int16_t)s;
-    }
+    // }
       /* ---- end soft pivot boost ---- */
       // ---------------------------------------------------------------------------
   
@@ -411,7 +411,8 @@ int main(void) {
       float  t_f     = (veh_mph <= STEER_CAP_START_MPH) ? 0.0f :
                       (veh_mph >= STEER_CAP_FULL_MPH)  ? 1.0f :
                       (veh_mph - STEER_CAP_START_MPH) / span;
-      if (t_f < 0.0f) t_f = 0.0f; if (t_f > 1.0f) t_f = 1.0f;
+      if (t_f < 0.0f) t_f = 0.0f; 
+      if (t_f > 1.0f) t_f = 1.0f;
       int16_t t_q15  = (int16_t)(t_f * 32767.0f + 0.5f);
 
       // 1) cap steering magnitude vs speed
@@ -705,7 +706,7 @@ int main(void) {
     main_loop_counter++;
     }
   }
-}
+
 
 
 // ===========================================================
