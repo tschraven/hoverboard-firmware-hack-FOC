@@ -351,32 +351,35 @@ int main(void) {
       steer = (int16_t)(steerFixdt >> 16);
       speed = (int16_t)(speedFixdt >> 16);
     
+      #if 0   // --- TEMP: disable soft pivot boost cleanly (no brace surprises) ---
       /* ---- Soft pivot boost (minimal, smooth) ----
       * Only when throttle ~0 and steer is clear, gently increase steer.
       */
-      // #ifndef PIVOT_SPEED_NEUTRAL
-      // #define PIVOT_SPEED_NEUTRAL   10   // |speed| < 10 => off-throttle
-      // #endif
-      // #ifndef PIVOT_STEER_MIN
-      // #define PIVOT_STEER_MIN       60   // need at least this steer to trigger
-      // #endif
-      // #ifndef PIVOT_BOOST
-      // #define PIVOT_BOOST           50   // how much steer to add (same units as 'steer')
-      // #endif
+      #ifndef PIVOT_SPEED_NEUTRAL
+      #define PIVOT_SPEED_NEUTRAL   10   // |speed| < 10 => off-throttle
+      #endif
+      #ifndef PIVOT_STEER_MIN
+      #define PIVOT_STEER_MIN       60   // need at least this steer to trigger
+      #endif
+      #ifndef PIVOT_BOOST
+      #define PIVOT_BOOST           50   // how much steer to add (same units as 'steer')
+      #endif
 
       /* abs for int16 without helpers */
-      // int16_t abs_speed = (speed >= 0) ? speed : (int16_t)(-speed);
-      // int16_t abs_steer = (steer >= 0) ? steer : (int16_t)(-steer);
+      int16_t abs_speed = (speed >= 0) ? speed : (int16_t)(-speed);
+      int16_t abs_steer = (steer >= 0) ? steer : (int16_t)(-steer);
 
-      // if (abs_speed < PIVOT_SPEED_NEUTRAL && abs_steer > PIVOT_STEER_MIN) {
-      // int16_t boost = (steer >= 0) ? PIVOT_BOOST : (int16_t)(-PIVOT_BOOST);
-      /* saturating add without helpers */
-      // int32_t s = (int32_t)steer + (int32_t)boost;
-      // if (s >  32767) s =  32767;
-      // if (s < -32768) s = -32768;
-      // steer = (int16_t)s;
-    // }
+      if (abs_speed < PIVOT_SPEED_NEUTRAL && abs_steer > PIVOT_STEER_MIN) {
+        int16_t boost = (steer >= 0) ? PIVOT_BOOST : (int16_t)(-PIVOT_BOOST);
+        /* saturating add without helpers */
+        int32_t s = (int32_t)steer + (int32_t)boost;
+        if (s >  32767) s =  32767;
+        if (s < -32768) s = -32768;
+        steer = (int16_t)s;
+      }
       /* ---- end soft pivot boost ---- */
+      #endif  // --- end TEMP ---
+
       // ---------------------------------------------------------------------------
   
       // ####### VARIANT_HOVERCAR #######
@@ -702,7 +705,6 @@ int main(void) {
     inIdx_prev = inIdx;
     buzzerTimer_prev = buzzerTimer;
     main_loop_counter++;
-  
   }
 }
 
