@@ -375,7 +375,7 @@ int main(void) {
       // if (s >  32767) s =  32767;
       // if (s < -32768) s = -32768;
       // steer = (int16_t)s;
-    // }
+    }
       /* ---- end soft pivot boost ---- */
       // ---------------------------------------------------------------------------
   
@@ -405,50 +405,48 @@ int main(void) {
       #else 
     // ---- Speed-based steering safety shaping (magnitude cap + extra slew) ----
     {
-      float  veh_mph = rpm_to_mph((float)speedAvgAbs); // uses measured speed (preferred)
+      float veh_mph = rpm_to_mph((float)speedAvgAbs);
 
-      float  span    = (STEER_CAP_FULL_MPH - STEER_CAP_START_MPH);
-      float  t_f     = (veh_mph <= STEER_CAP_START_MPH) ? 0.0f :
-                      (veh_mph >= STEER_CAP_FULL_MPH)  ? 1.0f :
-                      (veh_mph - STEER_CAP_START_MPH) / span;
-      if (t_f < 0.0f) t_f = 0.0f; 
+      float span = (STEER_CAP_FULL_MPH - STEER_CAP_START_MPH);
+      float t_f  = (veh_mph <= STEER_CAP_START_MPH) ? 0.0f :
+                  (veh_mph >= STEER_CAP_FULL_MPH)  ? 1.0f :
+                  (veh_mph - STEER_CAP_START_MPH) / span;
+      if (t_f < 0.0f) t_f = 0.0f;
       if (t_f > 1.0f) t_f = 1.0f;
-      int16_t t_q15  = (int16_t)(t_f * 32767.0f + 0.5f);
 
-      // 1) cap steering magnitude vs speed
+      int16_t t_q15 = (int16_t)(t_f * 32767.0f + 0.5f);
+
+      // 1) speed-dependent cap on |steer|
       int16_t max_low     = 1000;
       int16_t max_high    = STEER_CAP_FULLSPD_MAG;
       int16_t max_allowed = lerp_i16(max_low, max_high, t_q15);
 
       int16_t s_abs = (steer >= 0) ? steer : (int16_t)(-steer);
       if (s_abs > max_allowed) {
-        steer = (steer >= 0) ? max_allowed : (int16_t)(-max_allowed);
+          steer = (steer >= 0) ? max_allowed : (int16_t)(-max_allowed);
       }
 
-      // 2) speed-dependent extra slew on steering only  (Limiter is Q4-based!)
+      // 2) speed-dependent EXTRA slew (Limiter uses Q4 internal state!)
       static int16_t steer_slew_state_q4 = 0;
-      static uint8_t steer_slew_init = 0;
+      static uint8_t steer_slew_init     = 0;
 
-      int16_t slew_low_counts  = STEER_SLEW_LOWSPD;     // counts/loop in plain units
-      int16_t slew_high_counts = STEER_SLEW_FULLSPD;    // counts/loop in plain units
+      int16_t slew_low_counts  = STEER_SLEW_LOWSPD;   // counts/loop (plain)
+      int16_t slew_high_counts = STEER_SLEW_FULLSPD;
       int16_t slew_counts      = lerp_i16(slew_low_counts, slew_high_counts, t_q15);
+      int16_t slew_rate_q4     = (int16_t)(slew_counts << 4);  // convert to Q4
 
-      // Convert desired counts/loop to Q4 for the limiter
-      int16_t slew_rate_q4 = (int16_t)(slew_counts << 4);
-
-      // One-time init: set limiter state to current steer (in Q4) to avoid a “kick”
       if (!steer_slew_init) {
-        steer_slew_state_q4 = (int16_t)(steer << 4);
-        steer_slew_init = 1;
+          steer_slew_state_q4 = (int16_t)(steer << 4);  // init in Q4 to avoid jump
+          steer_slew_init = 1;
       }
 
-      // Run limiter in Q4 domain, then convert back to plain int16 for 'steer'
-      rateLimiter16(steer, slew_rate_q4, &steer_slew_state_q4);   // u=plain, y=Q4
-      steer = (int16_t)(steer_slew_state_q4 >> 4);
-    }
+      rateLimiter16(steer, slew_rate_q4, &steer_slew_state_q4); // u=plain, y=Q4
+      steer = (int16_t)(steer_slew_state_q4 >> 4);              // back to plain
+    } // end steering safety block
 
     // ####### MIXER #######
-        mixerFcn(speed << 4, steer << 4, &cmdR, &cmdL);
+    mixerFcn(speed << 4, steer << 4, &cmdR, &cmdL);
+
       #endif
 
 
@@ -705,7 +703,7 @@ int main(void) {
     buzzerTimer_prev = buzzerTimer;
     main_loop_counter++;
     }
-  }
+  
 
 
 
@@ -752,4 +750,4 @@ void SystemClock_Config(void) {
 
   /* SysTick_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
-}
+  }
