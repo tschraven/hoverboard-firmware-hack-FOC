@@ -220,7 +220,8 @@ int main(void) {
 
   SystemClock_Config();
 
-  __HAL_RCC_DMA1_CLK_DISABLE();
+  __HAL_RCC_DMA1_CLK_
+  ();
   MX_GPIO_Init();
   MX_TIM_Init();
   MX_ADC1_Init();
@@ -300,10 +301,10 @@ int main(void) {
         speedBlend = (uint16_t)(((CLAMP(speedAvgAbs,10,60) - 10) << 15) / 50); // speedBlend [0,1] is within [10 rpm, 60rpm]
       #endif
 
-      #if 0 // Temp disable STANDSTILL_HOLD_ENABLE
-      #ifdef STANDSTILL_HOLD_ENABLE
-        standstillHold();                                           // Apply Standstill Hold functionality. Only available and makes sense for VOLTAGE or TORQUE Mode
-      #endif
+      // Temp disable STANDSTILL_HOLD_ENABLE
+      // #ifdef STANDSTILL_HOLD_ENABLE
+      //   standstillHold();                                           // Apply Standstill Hold functionality. Only available and makes sense for VOLTAGE or TORQUE Mode
+      // #endif
 
       #ifdef VARIANT_HOVERCAR
       if (inIdx == CONTROL_ADC) {                                   // Only use use implementation below if pedals are in use (ADC input)
@@ -318,10 +319,10 @@ int main(void) {
       }
       #endif
 
-      #if 0 // Temp disable ELECTRIC_BRAKE_ENABLE
-      #ifdef ELECTRIC_BRAKE_ENABLE
-        electricBrake(speedBlend, MultipleTapBrake.b_multipleTap);  // Apply Electric Brake. Only available and makes sense for TORQUE Mode
-      #endif
+      // Temp disable ELECTRIC_BRAKE_ENABLE
+      // #ifdef ELECTRIC_BRAKE_ENABLE
+      //  electricBrake(speedBlend, MultipleTapBrake.b_multipleTap);  // Apply Electric Brake. Only available and makes sense for TORQUE Mode
+      // #endif
 
       #ifdef VARIANT_HOVERCAR
       if (inIdx == CONTROL_ADC) {                                   // Only use use implementation below if pedals are in use (ADC input)
