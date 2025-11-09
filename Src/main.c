@@ -220,7 +220,7 @@ int main(void) {
 
   SystemClock_Config();
 
-  __HAL_RCC_DMA1_CLK_
+
   ();
   MX_GPIO_Init();
   MX_TIM_Init();

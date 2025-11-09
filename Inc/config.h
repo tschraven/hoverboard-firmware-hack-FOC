@@ -176,14 +176,14 @@
  // #define ELECTRIC_BRAKE_SPEED_NEUTRAL  120   // speed “neutral” window (command units)
  
 // Extra fine tuning of reverse from full stop
-  #define EB_REVERSE_SKIP_SPEED      220   // “stopped” speed threshold (you’re using 150)
-  #define EB_REVERSE_INHIBIT_TICKS    120   // ~80 control cycles (tune 60–120)
-  #define EB_REVERSE_CMD_NEUTRAL      10   // any negative beyond this = reverse intent
+  // #define EB_REVERSE_SKIP_SPEED      220   // “stopped” speed threshold (you’re using 150)
+  // #define EB_REVERSE_INHIBIT_TICKS    120   // ~80 control cycles (tune 60–120)
+  // #define EB_REVERSE_CMD_NEUTRAL      10   // any negative beyond this = reverse intent
 
 // --- Soft-pivot boost (helps initiate a turn from zero speed) ---
-  #define PIVOT_SPEED_NEUTRAL   20   // |speed| below this (in cmd units) = “near zero”
-  #define PIVOT_STEER_MIN      60   // need at least this steering command to trigger
-  #define PIVOT_BOOST          60   // how much steering bias to add (in cmd units)
+  // #define PIVOT_SPEED_NEUTRAL   20   // |speed| below this (in cmd units) = “near zero”
+  // #define PIVOT_STEER_MIN      60   // need at least this steering command to trigger
+  // #define PIVOT_BOOST          60   // how much steering bias to add (in cmd units)
 
 // ======== Speed-Dependent Steering (vehicle-level) ========
 // Wheel+drive facts (edit if yours differ)
