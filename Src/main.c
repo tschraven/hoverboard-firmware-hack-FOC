@@ -221,7 +221,6 @@ int main(void) {
   SystemClock_Config();
 
 
-  ();
   MX_GPIO_Init();
   MX_TIM_Init();
   MX_ADC1_Init();
