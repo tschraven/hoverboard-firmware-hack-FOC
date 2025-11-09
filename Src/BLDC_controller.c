@@ -2383,34 +2383,101 @@ void BLDC_controller_step(RT_MODEL *const rtM)
         /* End of Outputs for SubSystem: '<S80>/Speed_Mode_Protection' */
         break;
 
-       case 2:
+             case 2:
         if (UnitDelay3 != rtb_Sum2_h) {
-          /* SystemReset for IfAction SubSystem: '<S80>/Torque_Mode_Protection' incorporates:
-           *  ActionPort: '<S82>/Action Port'
+          /* SystemReset for IfAction SubSystem: '<S59>/Torque_Mode' incorporates:
+           *  ActionPort: '<S62>/Action Port'
            */
 
-          /* SystemReset for Atomic SubSystem: '<S82>/I_backCalc_fixdt' */
+          /* SystemReset for Atomic SubSystem: '<S62>/PI_clamp_fixdt' */
 
-          /* SystemReset for SwitchCase: '<S80>/Switch Case' */
-          I_backCalc_fixdt_Reset(&rtDW->I_backCalc_fixdt_j, 58982400);
+          /* SystemReset for SwitchCase: '<S59>/Switch Case' */
+          PI_clamp_fixdt_g_Reset(&rtDW->PI_clamp_fixdt_kh);
 
-          /* End of SystemReset for SubSystem: '<S82>/I_backCalc_fixdt' */
+          /* End of SystemReset for SubSystem: '<S62>/PI_clamp_fixdt' */
 
-          /* End of SystemReset for SubSystem: '<S80>/Torque_Mode_Protection' */
+          /* End of SystemReset for SubSystem: '<S59>/Torque_Mode' */
         }
 
-        /* Outputs for IfAction SubSystem: '<S80>/Torque_Mode_Protection' incorporates:
-         *  ActionPort: '<S82>/Action Port'
+        /* Outputs for IfAction SubSystem: '<S59>/Torque_Mode' incorporates:
+         *  ActionPort: '<S62>/Action Port'
          */
+        /* Gain: '<S62>/Gain4' */
+        rtb_Saturation = (int16_T)-rtDW->Switch2_i;
 
-        /* Outputs for Atomic SubSystem: '<S82>/I_backCalc_fixdt' */
-        I_backCalc_fixdt((int16_T)(rtP->n_max - Abs5), rtP->cf_nKiLimProt,
-                         rtP->cf_KbLimProt, rtDW->Vq_max_M1, 0, &rtDW->Switch2_i,
-                         &rtDW->I_backCalc_fixdt_j);
+        /* Switch: '<S70>/Switch2' incorporates:
+         *  RelationalOperator: '<S70>/LowerRelop1'
+         *  RelationalOperator: '<S70>/UpperRelop'
+         *  Switch: '<S70>/Switch'
+         */
+        if (rtDW->Merge1 > rtDW->Divide1_n) {
+          rtb_Saturation1 = rtDW->Divide1_n;
+        } else if (rtDW->Merge1 < rtDW->Gain1) {
+          /* Switch: '<S70>/Switch' */
+          rtb_Saturation1 = rtDW->Gain1;
+        } else {
+          rtb_Saturation1 = rtDW->Merge1;
+        }
 
-        /* End of Outputs for SubSystem: '<S82>/I_backCalc_fixdt' */
+        /* End of Switch: '<S70>/Switch2' */
 
-        /* End of Outputs for SubSystem: '<S80>/Torque_Mode_Protection' */
+        /* --- Torque command deadband to prevent idle jitter --- */
+#ifndef IQ_CMD_DEADBAND
+#define IQ_CMD_DEADBAND  200   /* tune: 100–400 in your units */
+#endif
+
+        if ((rtb_Saturation1 > -IQ_CMD_DEADBAND) && (rtb_Saturation1 < IQ_CMD_DEADBAND)) {
+          /* Inside deadband: treat as zero-torque request.
+           * Skip PI and command zero Vq so the motor can truly coast.
+           */
+          rtDW->Merge = 0;
+        } else {
+          /* Normal torque-mode PI control path */
+
+          /* Sum: '<S62>/Sum2' */
+          rtb_Gain3 = rtb_Saturation1 - rtDW->DataTypeConversion[0];
+          if (rtb_Gain3 > 32767) {
+            rtb_Gain3 = 32767;
+          } else {
+            if (rtb_Gain3 < -32768) {
+              rtb_Gain3 = -32768;
+            }
+          }
+
+          /* MinMax: '<S62>/MinMax1' */
+          if (rtDW->Vq_max_M1 < rtDW->Switch2_i) {
+            rtb_Saturation1 = rtDW->Vq_max_M1;
+          } else {
+            rtb_Saturation1 = rtDW->Switch2_i;
+          }
+
+          /* End of MinMax: '<S62>/MinMax1' */
+
+          /* MinMax: '<S62>/MinMax2' */
+          if (!(rtb_Saturation > rtDW->Gain5)) {
+            rtb_Saturation = rtDW->Gain5;
+          }
+
+          /* End of MinMax: '<S62>/MinMax2' */
+
+          /* Outputs for Atomic SubSystem: '<S62>/PI_clamp_fixdt' */
+
+          /* SignalConversion: '<S62>/Signal Conversion2' incorporates:
+           *  Constant: '<S62>/cf_iqKi'
+           *  Constant: '<S62>/cf_iqKp'
+           *  Constant: '<S62>/constant2'
+           *  Sum: '<S62>/Sum2'
+           *  UnitDelay: '<S8>/UnitDelay4'
+           */
+          PI_clamp_fixdt_k((int16_T)rtb_Gain3, rtP->cf_iqKp, rtP->cf_iqKi,
+                           rtDW->UnitDelay4_DSTATE_eu, rtb_Saturation1,
+                           rtb_Saturation, 0, &rtDW->Merge,
+                           &rtDW->PI_clamp_fixdt_kh);
+
+          /* End of Outputs for SubSystem: '<S62>/PI_clamp_fixdt' */
+        }
+
+        /* End of Outputs for SubSystem: '<S59>/Torque_Mode' */
         break;
       }
 

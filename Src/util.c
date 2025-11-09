@@ -723,8 +723,9 @@ void standstillHold(void) {
  * Output: input2.cmd (Throtle) with brake component included
  */
 void electricBrake(uint16_t speedBlend, uint8_t reverseDir) {
-#if defined(ELECTRIC_BRAKE_ENABLE) && (CTRL_TYP_SEL == FOC_CTRL) && (CTRL_MOD_REQ == TRQ_MODE)
-    int16_t brakeVal;
+  #if defined(ELECTRIC_BRAKE_ENABLE) && (CTRL_TYP_SEL == FOC_CTRL) && (CTRL_MOD_REQ == TRQ_MODE)
+      int16_t brakeVal;
+}
 
     // ---- Read current driver commands (logical roles: input2 = SPEED, input1 = STEER) ----
     const int16_t speedCmd = input2[inIdx].cmd;   // throttle (− reverse, + forward)
