@@ -164,7 +164,7 @@
 #define FIELD_WEAK_LO   750             // ( 500, 1000] Input target Low threshold for starting Field Weakening / Phase Advance. Do NOT set this higher than 1000.
 
 // Extra functionality
-// #define STANDSTILL_HOLD_ENABLE         // [-] Flag to hold the position when standtill is reached. Only available and makes sense for VOLTAGE or TORQUE mode.
+#define STANDSTILL_HOLD_ENABLE         // [-] Flag to hold the position when standtill is reached. Only available and makes sense for VOLTAGE or TORQUE mode.
   #define STANDSTILL_HOLD_THR    200   // engage below this avg speed (tune 100–300). NOTE: currently not build in
   #define STANDSTILL_HOLD_MAX    500   // max hold torque (tune 300–700). NOTE: currently not build in
   #define STANDSTILL_STEER_NEUTRAL   20   // Neutral thresholds for Standstill Hold, command units, ~small steer wiggle allowed
@@ -190,6 +190,15 @@
 #define PIVOT_STEER_MIN      60   // need at least this steering command to trigger
 #define PIVOT_BOOST          60   // how much steering bias to add (in cmd units)
 
+// -------- Speed-dependent steering (simple amplitude softening) --------
+// All thresholds are in motor-speed units (rtY_*.n_mot) ~ "rpm" scale.
+// Tune these to taste.
+
+#define STEER_SOFT_RPM_START     40    // below this |speedAvg|: no softening (full steer)
+#define STEER_SOFT_RPM_FULL      100   // at/above this: maximum softening
+
+// Gain is Q15: 32767 = 1.0, 16384 ≈ 0.5, etc.
+#define STEER_SOFT_MIN_GAIN_Q15  12000 // ≈ 0.37x steer at/above FULL
 
  // ########################### END OF MOTOR CONTROL ########################
 

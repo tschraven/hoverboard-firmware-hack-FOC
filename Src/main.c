@@ -169,6 +169,43 @@ static uint16_t rate = RATE; // Adjustable rate to support multiple drive modes 
   static uint16_t max_speed;
 #endif
 
+/* -------- Simple speed-dependent steering gain (Q15) -------- */
+/* Input:  speedAbs_rpm = |speedAvg| (same units as calcAvgSpeed)
+ * Output: gain in Q15 (32767 = 1.0)
+ */
+static int16_t steer_gain_from_speed_q15(int16_t speedAbs_rpm)
+{
+  // Below START: full steering
+  if (speedAbs_rpm <= STEER_SOFT_RPM_START) {
+    return 32767;  // 1.0
+  }
+
+  // At/above FULL: minimum steering gain
+  if (speedAbs_rpm >= STEER_SOFT_RPM_FULL) {
+    return STEER_SOFT_MIN_GAIN_Q15;
+  }
+
+  // Linear interpolation between 1.0 and MIN
+  int32_t span    = (int32_t)STEER_SOFT_RPM_FULL - (int32_t)STEER_SOFT_RPM_START;
+  int32_t delta   = (int32_t)speedAbs_rpm       - (int32_t)STEER_SOFT_RPM_START;
+
+  // t in Q15: 0.0 at START, 1.0 at FULL
+  int32_t t_q15   = (delta << 15) / span;  // safe; span > 0
+
+  int32_t one_q15 = 32767;
+  int32_t min_q15 = STEER_SOFT_MIN_GAIN_Q15;
+
+  // gain = 1.0 - t*(1.0 - min)
+  int32_t diff    = one_q15 - min_q15;
+  int32_t prod    = (t_q15 * diff) >> 15;
+  int32_t gain    = one_q15 - prod;
+
+  if (gain < 0)      gain = 0;
+  if (gain > 32767)  gain = 32767;
+
+  return (int16_t)gain;
+}
+
 
 int main(void) {
 
@@ -351,7 +388,28 @@ int main(void) {
     }
       /* ---- end soft pivot boost ---- */
       // ---------------------------------------------------------------------------
-  
+      
+      // -------- New: speed-dependent steering softening (simple amplitude only) --------
+      int16_t steer_soft = steer;
+
+      {
+        // Use measured average speed magnitude (same units as elsewhere)
+        int16_t v_abs = (speedAvg >= 0) ? speedAvg : (int16_t)(-speedAvg);
+
+        // Compute steering gain in Q15 based on speed
+        int16_t g_q15 = steer_gain_from_speed_q15(v_abs);
+
+        // Apply gain: steer_soft = steer * g_q15 (Q15)
+        int32_t tmp   = ((int32_t)steer * (int32_t)g_q15) >> 15;
+
+        // Saturate to int16 range
+        if (tmp >  32767) tmp =  32767;
+        if (tmp < -32768) tmp = -32768;
+
+        steer_soft = (int16_t)tmp;
+      }
+      // -------- end speed-dependent steering softening --------
+
       // ####### VARIANT_HOVERCAR #######
       #ifdef VARIANT_HOVERCAR
       if (inIdx == CONTROL_ADC) {               // Only use use implementation below if pedals are in use (ADC input)
@@ -373,11 +431,11 @@ int main(void) {
 
       #if defined(TANK_STEERING) && !defined(VARIANT_HOVERCAR) && !defined(VARIANT_SKATEBOARD) 
         // Tank steering (no mixing)
-        cmdL = steer; 
+        cmdL = steer_soft;                      // <-- use softened steer here too
         cmdR = speed;
       #else 
         // ####### MIXER #######
-        mixerFcn(speed << 4, steer << 4, &cmdR, &cmdL);   // This function implements the equations above
+        mixerFcn(speed << 4, steer_soft << 4, &cmdR, &cmdL);   // <-- use softened steer. This function implements the equations above
       #endif
 
 
