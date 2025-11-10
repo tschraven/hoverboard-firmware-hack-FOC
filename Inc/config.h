@@ -190,15 +190,23 @@
 #define PIVOT_STEER_MIN      60   // need at least this steering command to trigger
 #define PIVOT_BOOST          60   // how much steering bias to add (in cmd units)
 
-// -------- Speed-dependent steering (simple amplitude softening) --------
-// All thresholds are in motor-speed units (rtY_*.n_mot) ~ "rpm" scale.
-// Tune these to taste.
+// ======================================================================
+// SPEED-DEPENDENT STEERING  (toggle ON/OFF)
+// ----------------------------------------------------------------------
+// When enabled, steering amplitude gradually decreases as motor RPM rises.
+// Uses |speedAvg| (motor RPM) from the main loop.
+// Tune to taste for your max speed (~100 rpm = ≈2.5 mph).
+// ======================================================================
 
-#define STEER_SOFT_RPM_START     40    // below this |speedAvg|: no softening (full steer)
-#define STEER_SOFT_RPM_FULL      100   // at/above this: maximum softening
+#define USE_SPEED_DEP_STEERING        1   // 1 = enabled, 0 = disabled
 
-// Gain is Q15: 32767 = 1.0, 16384 ≈ 0.5, etc.
-#define STEER_SOFT_MIN_GAIN_Q15  12000 // ≈ 0.37x steer at/above FULL
+// Start and full softening points (motor-shaft RPM)
+#define STEER_SOFT_RPM_START          40   // below this: full steering
+#define STEER_SOFT_RPM_FULL           100  // at/above this: minimum steering
+
+// Minimum steering gain at/above FULL (Q15: 32767=1.0)
+#define STEER_SOFT_MIN_GAIN_Q15       12000   // ≈0.37× at full speed
+
 
  // ########################### END OF MOTOR CONTROL ########################
 
