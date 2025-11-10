@@ -164,7 +164,7 @@
 #define FIELD_WEAK_LO   750             // ( 500, 1000] Input target Low threshold for starting Field Weakening / Phase Advance. Do NOT set this higher than 1000.
 
 // Extra functionality
-#define STANDSTILL_HOLD_ENABLE         // [-] Flag to hold the position when standtill is reached. Only available and makes sense for VOLTAGE or TORQUE mode.
+// #define STANDSTILL_HOLD_ENABLE         // [-] Flag to hold the position when standtill is reached. Only available and makes sense for VOLTAGE or TORQUE mode.
   #define STANDSTILL_HOLD_THR    200   // engage below this avg speed (tune 100–300). NOTE: currently not build in
   #define STANDSTILL_HOLD_MAX    500   // max hold torque (tune 300–700). NOTE: currently not build in
   #define STANDSTILL_STEER_NEUTRAL   20   // Neutral thresholds for Standstill Hold, command units, ~small steer wiggle allowed
