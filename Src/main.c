@@ -355,7 +355,7 @@ int main(void) {
 
       // --- Post-filter deadband to kill joystick micro-noise ---
       #ifndef STEER_POSTFILT_DB
-      #define STEER_POSTFILT_DB  25   // ~2.5% of full scale (tweak 15..40)
+      #define STEER_POSTFILT_DB  40   // ~2.5% of full scale (tweak 15..40)
       #endif
       if (steer > -STEER_POSTFILT_DB && steer < STEER_POSTFILT_DB) {
         steer = 0;
