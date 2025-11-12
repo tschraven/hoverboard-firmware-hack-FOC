@@ -162,12 +162,19 @@ static uint32_t    buzzerTimer_prev = 0;
 static uint32_t    inactivity_timeout_counter;
 static MultipleTap MultipleTapBrake;    // define multiple tap functionality for the Brake pedal
 
-static uint16_t rate = RATE; // Adjustable rate to support multiple drive modes on startup
+// define multiple tap functionality for the Brake pedal
 
+// Independent per-axis rates (no MULTI_MODE_DRIVE used)
+static uint16_t steerRate = STEER_RATE;
+static uint16_t speedRate = SPEED_RATE;
+
+// If you never define MULTI_MODE_DRIVE, you can also remove the drive_mode/max_speed
+// block entirely. If you prefer to keep it, just leave it as-is but it won't be used.
 #ifdef MULTI_MODE_DRIVE
   static uint8_t drive_mode;
   static uint16_t max_speed;
 #endif
+
 
 #if USE_SPEED_DEP_STEERING
 /* ------------------------------------------------------------------
@@ -341,15 +348,17 @@ int main(void) {
         }
       #endif
 
-      // ####### LOW-PASS FILTER #######
-      rateLimiter16(input1[inIdx].cmd, rate, &steerRateFixdt);
-      rateLimiter16(input2[inIdx].cmd, rate, &speedRateFixdt);
-      filtLowPass32(steerRateFixdt >> 4, FILTER, &steerFixdt);
-      filtLowPass32(speedRateFixdt >> 4, FILTER, &speedFixdt);
+      // ####### PER-AXIS RATE LIMIT + LOW-PASS FILTER #######
+      rateLimiter16(input1[inIdx].cmd, steerRate, &steerRateFixdt);
+      rateLimiter16(input2[inIdx].cmd, speedRate, &speedRateFixdt);
+
+      filtLowPass32(steerRateFixdt >> 4, STEER_FILTER, &steerFixdt);
+      filtLowPass32(speedRateFixdt >> 4, SPEED_FILTER, &speedFixdt);
 
       // Convert filtered fixed-point (Q16-ish) to plain int16 commands
       steer = (int16_t)(steerFixdt >> 16);
       speed = (int16_t)(speedFixdt >> 16);
+
     
       /* ---- Soft pivot boost (minimal, smooth) ----
       * Only when throttle ~0 and steer is clear, gently increase steer.

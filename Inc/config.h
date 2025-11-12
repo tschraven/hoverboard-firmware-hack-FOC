@@ -201,11 +201,11 @@
 #define USE_SPEED_DEP_STEERING        1   // 1 = enabled, 0 = disabled
 
 // Start and full softening points (motor-shaft RPM)
-#define STEER_SOFT_RPM_START          40   // below this: full steering
+#define STEER_SOFT_RPM_START          99   // below this: full steering
 #define STEER_SOFT_RPM_FULL           100  // at/above this: minimum steering
 
 // Minimum steering gain at/above FULL (Q15: 32767=1.0)
-#define STEER_SOFT_MIN_GAIN_Q15       12000   // ≈0.37× at full speed
+#define STEER_SOFT_MIN_GAIN_Q15       16000   // 12000≈0.37× at full speed
 
 
  // ########################### END OF MOTOR CONTROL ########################
@@ -229,6 +229,31 @@
 // Value of RATE is in fixdt(1,16,4): VAL_fixedPoint = VAL_floatingPoint * 2^4. In this case 480 = 30 * 2^4
 #define DEFAULT_RATE                200   // 30.0f [-] lower value == slower rate [0, 32767] = [0.0, 2047.9375]. Do NOT make rate negative (>32767)
 #define DEFAULT_FILTER              6000  // Default for FILTER 0.1f [-] lower value == softer filter [0, 65535] = [0.0 - 1.0].
+    // Per-axis base rate (fixdt(1,16,4) units)
+    #define DEFAULT_STEER_RATE          200
+    #define DEFAULT_SPEED_RATE          100
+
+    // Per-axis base low-pass filter (fixdt(0,16,16))
+    #define DEFAULT_STEER_FILTER        6000
+    #define DEFAULT_SPEED_FILTER        12000
+
+    // Allow overriding from elsewhere if ever needed
+    #ifndef STEER_RATE
+      #define STEER_RATE   DEFAULT_STEER_RATE
+    #endif
+
+    #ifndef SPEED_RATE
+      #define SPEED_RATE   DEFAULT_SPEED_RATE
+    #endif
+
+    #ifndef STEER_FILTER
+      #define STEER_FILTER DEFAULT_STEER_FILTER
+    #endif
+
+    #ifndef SPEED_FILTER
+      #define SPEED_FILTER DEFAULT_SPEED_FILTER
+    #endif
+
 #define DEFAULT_SPEED_COEFFICIENT   16000 // Default for SPEED_COEFFICIENT 1.0f [-] higher value == stronger. [0, 65535] = [-2.0 - 2.0]. In this case 16384 = 1.0 * 2^14
 #define DEFAULT_STEER_COEFFICIENT   16000  // Defualt for STEER_COEFFICIENT 0.5f [-] higher value == stronger. [0, 65535] = [-2.0 - 2.0]. In this case  8192 = 0.5 * 2^14. If you do not want any steering, set it to 0.
 // ######################### END OF DEFAULT SETTINGS ##########################
