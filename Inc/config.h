@@ -154,7 +154,7 @@
 // Limitation settings
 #define I_MOT_MAX       15              // [A] Maximum single motor current limit
 #define I_DC_MAX        17              // [A] Maximum stage2 DC Link current limit for Commutation and Sinusoidal types (This is the final current protection. Above this value, current chopping is applied. To avoid this make sure that I_DC_MAX = I_MOT_MAX + 2A)
-#define N_MOT_MAX       50             // [rpm] Maximum motor speed limit
+#define N_MOT_MAX       200             // [rpm] Maximum motor speed limit
 
 // Field Weakening / Phase Advance
 #define FIELD_WEAK_ENA  0              // [-] Field Weakening / Phase Advance enable flag: 0 = Disabled (default), 1 = Enabled
@@ -191,19 +191,32 @@
 #define PIVOT_BOOST          60   // how much steering bias to add (in cmd units)
 
 // ======================================================================
+// HARD TOP-SPEED LIMITER  (for torque mode)
+// ----------------------------------------------------------------------
+// Limits throttle command once actual |speedAvg| exceeds SPEED_CAP_RPM.
+// Works with N_MOT_MAX and speed-dependent steering.
+// ======================================================================
+
+#define USE_SPEED_CAP         1      // 1 = enable, 0 = disable
+// Motor-shaft speed (rpm) where limiter starts to fade throttle
+#define SPEED_CAP_RPM         50    // ≈ 3.5 mph for 216 mm wheel, 1:1 gearing
+// Hysteresis band (rpm) before limiter disengages
+#define SPEED_CAP_HYST        10     // prevents on/off chatter near threshold
+// Fade range above SPEED_CAP_RPM where throttle goes to zero (rpm)
+#define SPEED_CAP_FADE_RANGE  50     // smooth taper, adjust to taste
+
+// ======================================================================
 // SPEED-DEPENDENT STEERING  (toggle ON/OFF)
 // ----------------------------------------------------------------------
 // When enabled, steering amplitude gradually decreases as motor RPM rises.
 // Uses |speedAvg| (motor RPM) from the main loop.
 // Tune to taste for your max speed (~100 rpm = ≈2.5 mph).
 // ======================================================================
-
-#define USE_SPEED_DEP_STEERING        1   // 1 = enabled, 0 = disabled
+#define USE_SPEED_DEP_STEERING        0   // 1 = enabled, 0 = disabled
 
 // Start and full softening points (motor-shaft RPM)
-#define STEER_SOFT_RPM_START          99   // below this: full steering
+#define STEER_SOFT_RPM_START          50   // below this: full steering
 #define STEER_SOFT_RPM_FULL           100  // at/above this: minimum steering
-
 // Minimum steering gain at/above FULL (Q15: 32767=1.0)
 #define STEER_SOFT_MIN_GAIN_Q15       16000   // 12000≈0.37× at full speed
 
@@ -256,8 +269,8 @@
 
 #define DEFAULT_SPEED_COEFFICIENT   16000 // Default for SPEED_COEFFICIENT 1.0f [-] higher value == stronger. [0, 65535] = [-2.0 - 2.0]. In this case 16384 = 1.0 * 2^14
 #define DEFAULT_STEER_COEFFICIENT   16000  // Defualt for STEER_COEFFICIENT 0.5f [-] higher value == stronger. [0, 65535] = [-2.0 - 2.0]. In this case  8192 = 0.5 * 2^14. If you do not want any steering, set it to 0.
-// ######################### END OF DEFAULT SETTINGS ##########################
 
+// ######################### END OF DEFAULT SETTINGS ##########################
 
 
 // ############################## INPUT FORMAT ############################
@@ -361,7 +374,7 @@
     #define AUX_INPUT1          3, -1000, 0, 1000, 0  // TYPE, MIN, MID, MAX, DEADBAND. See INPUT FORMAT section
     #define AUX_INPUT2          3, -1000, 0, 1000, 0  // TYPE, MIN, MID, MAX, DEADBAND. See INPUT FORMAT section
   #else
-    #define FLASH_WRITE_KEY     0x1001    // Flash memory writing key. Change this key to ignore the input calibrations from the flash memory and use the ones in config.h
+    #define FLASH_WRITE_KEY     0x1002    // Flash memory writing key. Change this key to ignore the input calibrations from the flash memory and use the ones in config.h
     #define DEBUG_SERIAL_USART3           // right sensor board cable, disable if I2C (nunchuk or lcd) is used!
   #endif
 
