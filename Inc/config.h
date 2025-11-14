@@ -241,7 +241,7 @@
 #define DEFAULT_RATE                200   // 30.0f [-] lower value == slower rate [0, 32767] = [0.0, 2047.9375]. Do NOT make rate negative (>32767)
 #define DEFAULT_FILTER              6000  // Default for FILTER 0.1f [-] lower value == softer filter [0, 65535] = [0.0 - 1.0].
     // Per-axis base rate (fixdt(1,16,4) units)
-    #define DEFAULT_STEER_RATE          200
+    #define DEFAULT_STEER_RATE          300
     #define DEFAULT_SPEED_RATE          100
 
     // Per-axis base low-pass filter (fixdt(0,16,16))
