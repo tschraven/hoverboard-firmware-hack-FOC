@@ -199,9 +199,9 @@
 
 #define USE_SPEED_CAP         1      // 1 = enable, 0 = disable
 // Motor-shaft speed (rpm) where limiter starts to fade throttle
-#define SPEED_CAP_RPM         50    // ≈ 3.5 mph for 216 mm wheel, 1:1 gearing
+#define SPEED_CAP_RPM         70    // ≈ 3.5 mph for 216 mm wheel, 1:1 gearing
 // Hysteresis band (rpm) before limiter disengages
-#define SPEED_CAP_HYST        10     // prevents on/off chatter near threshold
+#define SPEED_CAP_HYST        30     // prevents on/off chatter near threshold
 // Fade range above SPEED_CAP_RPM where throttle goes to zero (rpm)
 #define SPEED_CAP_FADE_RANGE  50     // smooth taper, adjust to taste
 
@@ -220,9 +220,7 @@
 // Minimum steering gain at/above FULL (Q15: 32767=1.0)
 #define STEER_SOFT_MIN_GAIN_Q15       16000   // 12000≈0.37× at full speed
 
-
  // ########################### END OF MOTOR CONTROL ########################
-
 
 
 // ############################## DEFAULT SETTINGS ############################
