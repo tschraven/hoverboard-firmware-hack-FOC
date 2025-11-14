@@ -197,7 +197,7 @@
 // Works with N_MOT_MAX and speed-dependent steering.
 // ======================================================================
 
-#define USE_SPEED_CAP         1      // 1 = enable, 0 = disable
+#define USE_SPEED_CAP         0      // 1 = enable, 0 = disable
 // Motor-shaft speed (rpm) where limiter starts to fade throttle
 #define SPEED_CAP_RPM         70    // ≈ 3.5 mph for 216 mm wheel, 1:1 gearing
 // Hysteresis band (rpm) before limiter disengages
