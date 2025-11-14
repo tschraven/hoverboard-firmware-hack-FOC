@@ -238,15 +238,15 @@
  * If VAL_floatingPoint < 0,  VAL_fixedPoint = 2^16 + floor(VAL_floatingPoint * 2^14).
 */
 // Value of RATE is in fixdt(1,16,4): VAL_fixedPoint = VAL_floatingPoint * 2^4. In this case 480 = 30 * 2^4
-#define DEFAULT_RATE                200   // 30.0f [-] lower value == slower rate [0, 32767] = [0.0, 2047.9375]. Do NOT make rate negative (>32767)
-#define DEFAULT_FILTER              6000  // Default for FILTER 0.1f [-] lower value == softer filter [0, 65535] = [0.0 - 1.0].
+#define DEFAULT_RATE                100   // 30.0f [-] lower value == slower rate [0, 32767] = [0.0, 2047.9375]. Do NOT make rate negative (>32767)
+#define DEFAULT_FILTER              13000  // Default for FILTER 0.1f [-] lower value == softer filter [0, 65535] = [0.0 - 1.0].
     // Per-axis base rate (fixdt(1,16,4) units)
-    #define DEFAULT_STEER_RATE          300
+    #define DEFAULT_STEER_RATE          100
     #define DEFAULT_SPEED_RATE          100
 
     // Per-axis base low-pass filter (fixdt(0,16,16))
-    #define DEFAULT_STEER_FILTER        6000
-    #define DEFAULT_SPEED_FILTER        12000
+    #define DEFAULT_STEER_FILTER        13000
+    #define DEFAULT_SPEED_FILTER        13000
 
     // Allow overriding from elsewhere if ever needed
     #ifndef STEER_RATE
