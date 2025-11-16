@@ -204,6 +204,8 @@
 #define SPEED_CAP_HYST        30     // prevents on/off chatter near threshold
 // Fade range above SPEED_CAP_RPM where throttle goes to zero (rpm)
 #define SPEED_CAP_FADE_RANGE  40     // smooth taper, adjust to taste
+// Only apply speed cap when throttle command is significantly non-zero. This avoids fighting electric brake / standstill hold during decel.
+#define SPEED_CAP_CMD_NEUTRAL   80   // joystick speed units (~small stick wiggle)
 
 // ======================================================================
 // SPEED-DEPENDENT STEERING  (toggle ON/OFF)
