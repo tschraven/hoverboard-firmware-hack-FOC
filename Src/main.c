@@ -389,25 +389,30 @@ int main(void) {
 
       // --- Hard top-speed limiter (before steering softening) ---
       #if USE_SPEED_CAP
-      // ---- Simple top-speed limiter (torque mode, motor RPM) ----
-      int16_t v_abs = (speedAvg >= 0) ? speedAvg : (int16_t)(-speedAvg);
-      static uint8_t capActive = 0;
+      // Use a filtered motor speed for cap logic to avoid chatter
+      static float speedCapFilt = 0.0f;
+      const float ALPHA_CAP = 0.2f;  // 0.1–0.3 is fine
 
-      // engage/disengage hysteresis
+      int16_t rawAbs = (speedAvg >= 0) ? speedAvg : (int16_t)(-speedAvg);
+      speedCapFilt = speedCapFilt + ALPHA_CAP * ((float)rawAbs - speedCapFilt);
+      int16_t v_abs = (int16_t)speedCapFilt;
+
+      static uint8_t capActive = 0;
       if (!capActive && v_abs >= SPEED_CAP_RPM) capActive = 1;
       if ( capActive && v_abs <= (SPEED_CAP_RPM - SPEED_CAP_HYST)) capActive = 0;
 
       if (capActive) {
-        int16_t over = v_abs - SPEED_CAP_RPM; if (over < 0) over = 0;
-        if (over > SPEED_CAP_FADE_RANGE) over = SPEED_CAP_FADE_RANGE;
+          int16_t over = v_abs - SPEED_CAP_RPM; 
+          if (over < 0) over = 0;
+          if (over > SPEED_CAP_FADE_RANGE) over = SPEED_CAP_FADE_RANGE;
 
-      // linear fade 1.0 → 0.0 across fade range
-      int16_t g_q15 = (int16_t)((((int32_t)(SPEED_CAP_FADE_RANGE - over)) << 15) /
-                               SPEED_CAP_FADE_RANGE);
-      int32_t tmp   = ((int32_t)speed * g_q15) >> 15;
-      if (tmp >  32767) tmp =  32767;
-      if (tmp < -32768) tmp = -32768;
-      speed = (int16_t)tmp;
+          // linear fade 1.0 → 0.0 across fade range
+          int16_t g_q15 = (int16_t)((((int32_t)(SPEED_CAP_FADE_RANGE - over)) << 15) /
+                                    SPEED_CAP_FADE_RANGE);
+          int32_t tmp   = ((int32_t)speed * g_q15) >> 15;
+          if (tmp >  32767) tmp =  32767;
+          if (tmp < -32768) tmp = -32768;
+          speed = (int16_t)tmp;
         }
       #endif
       // ---- end top-speed limiter ----
