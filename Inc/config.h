@@ -197,7 +197,7 @@
 // Works with N_MOT_MAX and speed-dependent steering.
 // ======================================================================
 
-#define USE_SPEED_CAP         1      // 1 = enable, 0 = disable
+#define USE_SPEED_CAP         0      // 1 = enable, 0 = disable
 // Motor-shaft speed (rpm) where limiter starts to fade throttle
 #define SPEED_CAP_RPM         160    // ≈ 3.5 mph for 216 mm wheel, 1:1 gearing
 // Hysteresis band (rpm) before limiter disengages
@@ -267,7 +267,7 @@
       #define SPEED_FILTER DEFAULT_SPEED_FILTER
     #endif
 
-#define DEFAULT_SPEED_COEFFICIENT   16000 // Default for SPEED_COEFFICIENT 1.0f [-] higher value == stronger. [0, 65535] = [-2.0 - 2.0]. In this case 16384 = 1.0 * 2^14
+#define DEFAULT_SPEED_COEFFICIENT   8000 // Default for SPEED_COEFFICIENT 1.0f [-] higher value == stronger. [0, 65535] = [-2.0 - 2.0]. In this case 16384 = 1.0 * 2^14
 #define DEFAULT_STEER_COEFFICIENT   16000  // Defualt for STEER_COEFFICIENT 0.5f [-] higher value == stronger. [0, 65535] = [-2.0 - 2.0]. In this case  8192 = 0.5 * 2^14. If you do not want any steering, set it to 0.
 
 // ######################### END OF DEFAULT SETTINGS ##########################
