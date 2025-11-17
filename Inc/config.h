@@ -199,9 +199,9 @@
 
 #define USE_SPEED_CAP         1      // 1 = enable, 0 = disable
 // Motor-shaft speed (rpm) where limiter starts to fade throttle
-#define SPEED_CAP_RPM         120    // ≈ 3.5 mph for 216 mm wheel, 1:1 gearing
+#define SPEED_CAP_RPM         160    // ≈ 3.5 mph for 216 mm wheel, 1:1 gearing
 // Hysteresis band (rpm) before limiter disengages
-#define SPEED_CAP_HYST        30     // prevents on/off chatter near threshold
+#define SPEED_CAP_HYST        10     // prevents on/off chatter near threshold
 // Fade range above SPEED_CAP_RPM where throttle goes to zero (rpm)
 #define SPEED_CAP_FADE_RANGE  40     // smooth taper, adjust to taste
 // Only apply speed cap when throttle command is significantly non-zero. This avoids fighting electric brake / standstill hold during decel.
