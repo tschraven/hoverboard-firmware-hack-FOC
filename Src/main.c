@@ -466,7 +466,6 @@ int main(void) {
         cmdL = steer_soft;
         cmdR = speed;
       #else 
-      
         // ####### MIXER #######
         mixerFcn(speed << 4, steer_soft << 4, &cmdR, &cmdL);
       #endif
@@ -533,6 +532,8 @@ int main(void) {
       #else
         pwml = cmdL;
       #endif
+
+    #endif
 
     #ifdef VARIANT_TRANSPOTTER
       distance    = CLAMP(input1[inIdx].cmd - 180, 0, 4095);
