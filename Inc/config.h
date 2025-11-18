@@ -196,7 +196,7 @@
 // Scales both left/right commands together when actual speed exceeds
 // SPEED_GOV_RPM and the rider is still on throttle.
 // ======================================================================
-#define USE_SPEED_GOV            1      // 1 = enable, 0 = disable
+#define USE_SPEED_GOV            0      // 1 = enable, 0 = disable
 
 // Motor-shaft speed (rpm) where governor starts to fade torque
 #define SPEED_GOV_RPM            120    // ≈ 3 mph for 8" wheel
