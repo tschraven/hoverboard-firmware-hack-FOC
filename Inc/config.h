@@ -191,6 +191,26 @@
 #define PIVOT_BOOST          60   // how much steering bias to add (in cmd units)
 
 // ======================================================================
+// SYMMETRIC SPEED GOVERNOR (torque mode, joystick steering)
+// ----------------------------------------------------------------------
+// Scales both left/right commands together when actual speed exceeds
+// SPEED_GOV_RPM and the rider is still on throttle.
+// ======================================================================
+#define USE_SPEED_GOV            1      // 1 = enable, 0 = disable
+
+// Motor-shaft speed (rpm) where governor starts to fade torque
+#define SPEED_GOV_RPM            120    // ≈ 3 mph for 8" wheel
+
+// Hysteresis (rpm) before governor disengages
+#define SPEED_GOV_HYST           20     // off again below 100 rpm
+
+// Fade range above SPEED_GOV_RPM (rpm) over which torque goes to 0
+#define SPEED_GOV_FADE_RANGE     40     // fully faded by ~160 rpm
+
+// Only apply governor if throttle command is significantly non-zero
+#define SPEED_GOV_CMD_NEUTRAL    80     // speed command units (~small stick wiggle)
+
+// ======================================================================
 // HARD TOP-SPEED LIMITER  (for torque mode)
 // ----------------------------------------------------------------------
 // Limits throttle command once actual |speedAvg| exceeds SPEED_CAP_RPM.
