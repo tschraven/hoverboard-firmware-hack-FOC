@@ -267,7 +267,7 @@
     #define DEFAULT_SPEED_RATE          100
 
     // Per-axis base low-pass filter (fixdt(0,16,16))
-    #define DEFAULT_STEER_FILTER        13000
+    #define DEFAULT_STEER_FILTER        24000
     #define DEFAULT_SPEED_FILTER        13000
 
     // Allow overriding from elsewhere if ever needed
@@ -287,7 +287,7 @@
       #define SPEED_FILTER DEFAULT_SPEED_FILTER
     #endif
 
-#define DEFAULT_SPEED_COEFFICIENT   8000 // Default for SPEED_COEFFICIENT 1.0f [-] higher value == stronger. [0, 65535] = [-2.0 - 2.0]. In this case 16384 = 1.0 * 2^14
+#define DEFAULT_SPEED_COEFFICIENT   32000 // Default for SPEED_COEFFICIENT 1.0f [-] higher value == stronger. [0, 65535] = [-2.0 - 2.0]. In this case 16384 = 1.0 * 2^14
 #define DEFAULT_STEER_COEFFICIENT   16000  // Defualt for STEER_COEFFICIENT 0.5f [-] higher value == stronger. [0, 65535] = [-2.0 - 2.0]. In this case  8192 = 0.5 * 2^14. If you do not want any steering, set it to 0.
 
 // ######################### END OF DEFAULT SETTINGS ##########################
