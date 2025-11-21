@@ -473,50 +473,54 @@ int main(void) {
       // -------- Symmetric speed governor (post-mixer) --------
       #if USE_SPEED_GOV
       {
-        // Average absolute motor RPM from both sides
-        int16_t nL = (int16_t)rtY_Left.n_mot;
-        int16_t nR = (int16_t)rtY_Right.n_mot;
-        int16_t absL = (nL >= 0) ? nL : (int16_t)(-nL);
-        int16_t absR = (nR >= 0) ? nR : (int16_t)(-nR);
-        int16_t speedAvgAbs_local = (int16_t)(((int32_t)absL + absR) >> 1);
+          // Average abs rpm
+          int16_t nL = (int16_t)rtY_Left.n_mot;
+          int16_t nR = (int16_t)rtY_Right.n_mot;
+          int16_t absL = (nL >= 0) ? nL : (int16_t)(-nL);
+          int16_t absR = (nR >= 0) ? nR : (int16_t)(-nR);
+          int16_t speedAvgAbs_local = (int16_t)(((int32_t)absL + absR) >> 1);
 
-        // Filter speed slightly to avoid chatter
-        static float govSpeedFilt = 0.0f;
-        const float ALPHA_GOV = 0.2f;
-        govSpeedFilt = govSpeedFilt + ALPHA_GOV * ((float)speedAvgAbs_local - govSpeedFilt);
-        int16_t v_abs = (int16_t)govSpeedFilt;
+          // Filter
+          static float govSpeedFilt = 0.0f;
+          const float ALPHA_GOV = 0.2f;
+          govSpeedFilt = govSpeedFilt + ALPHA_GOV * ((float)speedAvgAbs_local - govSpeedFilt);
+          int16_t v_abs = (int16_t)govSpeedFilt;
 
-        // Only govern when rider is actually on throttle
-        int16_t speedCmdAbs = (speed >= 0) ? speed : (int16_t)(-speed);
-        if (speedCmdAbs > SPEED_GOV_CMD_NEUTRAL) {
+          // Throttle magnitude
+          int16_t speedCmdAbs = (speed >= 0) ? speed : (int16_t)(-speed);
 
           static uint8_t govActive = 0;
-          if (!govActive && v_abs >= SPEED_GOV_RPM)                govActive = 1;
-          if ( govActive && v_abs <= (SPEED_GOV_RPM - SPEED_GOV_HYST)) govActive = 0;
 
-          if (govActive) {
-            int16_t over = v_abs - SPEED_GOV_RPM;
-            if (over < 0) over = 0;
-            if (over > SPEED_GOV_FADE_RANGE) over = SPEED_GOV_FADE_RANGE;
+          // If throttle near neutral: *force* governor off and do NOTHING else
+          if (speedCmdAbs <= SPEED_GOV_CMD_NEUTRAL) {
+              govActive = 0;
+          } else {
+              // Only with real throttle do we even consider enabling governor
+              if (!govActive && v_abs >= SPEED_GOV_RPM)
+                  govActive = 1;
+              if ( govActive && v_abs <= (SPEED_GOV_RPM - SPEED_GOV_HYST))
+                  govActive = 0;
 
-            // gain g in Q15, 1.0 -> 0.0 across fade range
-            int16_t g_q15 = (int16_t)((((int32_t)(SPEED_GOV_FADE_RANGE - over)) << 15) /
-                                       SPEED_GOV_FADE_RANGE);
+              if (govActive) {
+                  int16_t over = v_abs - SPEED_GOV_RPM;
+                  if (over < 0) over = 0;
+                  if (over > SPEED_GOV_FADE_RANGE) over = SPEED_GOV_FADE_RANGE;
 
-            // Scale both wheels equally to avoid veer
-            int32_t tmpR = ((int32_t)cmdR * g_q15) >> 15;
-            int32_t tmpL = ((int32_t)cmdL * g_q15) >> 15;
+                  int16_t g_q15 = (int16_t)((((int32_t)(SPEED_GOV_FADE_RANGE - over)) << 15) /
+                                            SPEED_GOV_FADE_RANGE);
 
-            if (tmpR >  32767) tmpR =  32767;
-            if (tmpR < -32768) tmpR = -32768;
-            if (tmpL >  32767) tmpL =  32767;
-            if (tmpL < -32768) tmpL = -32768;
+                  int32_t tmpR = ((int32_t)cmdR * g_q15) >> 15;
+                  int32_t tmpL = ((int32_t)cmdL * g_q15) >> 15;
 
-            cmdR = (int16_t)tmpR;
-            cmdL = (int16_t)tmpL;
+                  if (tmpR >  32767) tmpR =  32767;
+                  if (tmpR < -32768) tmpR = -32768;
+                  if (tmpL >  32767) tmpL =  32767;
+                  if (tmpL < -32768) tmpL = -32768;
+
+                  cmdR = (int16_t)tmpR;
+                  cmdL = (int16_t)tmpL;
+              }
           }
-        }
-        // If throttle is near neutral, governor is off: e-brake / standstill hold handle decel.
       }
       #endif
       // -------- end symmetric speed governor --------
