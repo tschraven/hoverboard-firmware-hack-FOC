@@ -248,6 +248,10 @@ int main(void) {
     }
   #endif
 
+  #ifdef DEBUG_SERIAL_USART3
+  printf("UART3 alive!\r\n");
+  #endif
+
   while(1) {
     if (buzzerTimer - buzzerTimer_prev > 16*DELAY_IN_MAIN_LOOP) {   // 1 ms = 16 ticks buzzerTimer
 
