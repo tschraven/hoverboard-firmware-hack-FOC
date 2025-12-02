@@ -168,6 +168,16 @@ static MultipleTap MultipleTapBrake;    // define multiple tap functionality for
 static uint16_t steerRate = STEER_RATE;
 static uint16_t speedRate = SPEED_RATE;
 
+// ---- Debug state for speed governor / ebrake / standstill hold ----
+static uint8_t  dbg_govActive   = 0;     // 1 = governor currently scaling torque
+static int16_t  dbg_govGain_q15 = 32767; // Q15 gain (32767 ≈ 1.0)
+static int16_t  dbg_govRpmAbs   = 0;     // filtered |rpm| used by governor
+static int16_t  dbg_govCmdAbs   = 0;     // |speed| command when governor checks
+
+static uint8_t  dbg_ebrakeMaybe = 0;     // heuristic: ebrake likely active
+static uint8_t  dbg_holdMaybe   = 0;     // heuristic: standstill hold likely active
+
+
 // If you never define MULTI_MODE_DRIVE, you can also remove the drive_mode/max_speed
 // block entirely. If you prefer to keep it, just leave it as-is but it won't be used.
 #ifdef MULTI_MODE_DRIVE
@@ -441,6 +451,38 @@ int main(void) {
       #endif
 
       // -------- end speed-dependent steering softening --------
+      
+            // ---- Debug: standstill-hold heuristic ----
+      {
+        int16_t spdAbs    = (speedAvg >= 0) ? speedAvg : (int16_t)(-speedAvg);
+        int16_t cmdSpdAbs = (speed    >= 0) ? speed    : (int16_t)(-speed);
+        int16_t cmdStrAbs = (steer    >= 0) ? steer    : (int16_t)(-steer);
+
+        // "Likely hold" when near standstill and commands near neutral
+        if (spdAbs <= STANDSTILL_HOLD_THR &&
+            cmdSpdAbs <= STANDSTILL_SPEED_NEUTRAL &&
+            cmdStrAbs <= STANDSTILL_STEER_NEUTRAL) {
+          dbg_holdMaybe = 1;
+        } else {
+          dbg_holdMaybe = 0;
+        }
+      }
+
+      // ---- Debug: ebrake heuristic ----
+      {
+        // We approximate "ebrake likely active" as:
+        //  - some motion (speedAvgAbs > ~0)
+        //  - throttle near zero
+        //  - and ELECTRIC_BRAKE_ENABLE is compiled in (logic lives in util.c)
+        int16_t spdAbs    = (speedAvg >= 0) ? speedAvg : (int16_t)(-speedAvg);
+        int16_t cmdSpdAbs = (speed    >= 0) ? speed    : (int16_t)(-speed);
+
+        if (spdAbs > 10 && cmdSpdAbs <= ELECTRIC_BRAKE_SPEED_NEUTRAL) {
+          dbg_ebrakeMaybe = 1;
+        } else {
+          dbg_ebrakeMaybe = 0;
+        }
+      }
 
       // ####### VARIANT_HOVERCAR #######
       #ifdef VARIANT_HOVERCAR
@@ -491,15 +533,23 @@ int main(void) {
 
           static uint8_t govActive = 0;
 
+          // Update debug inputs
+          dbg_govRpmAbs = v_abs;
+          dbg_govCmdAbs = speedCmdAbs;
+
           // If throttle near neutral: *force* governor off and do NOTHING else
           if (speedCmdAbs <= SPEED_GOV_CMD_NEUTRAL) {
-              govActive = 0;
+              govActive       = 0;
+              dbg_govActive   = 0;
+              dbg_govGain_q15 = 32767;   // 1.0
           } else {
               // Only with real throttle do we even consider enabling governor
               if (!govActive && v_abs >= SPEED_GOV_RPM)
                   govActive = 1;
               if ( govActive && v_abs <= (SPEED_GOV_RPM - SPEED_GOV_HYST))
                   govActive = 0;
+
+              dbg_govActive = govActive;
 
               if (govActive) {
                   int16_t over = v_abs - SPEED_GOV_RPM;
@@ -508,6 +558,8 @@ int main(void) {
 
                   int16_t g_q15 = (int16_t)((((int32_t)(SPEED_GOV_FADE_RANGE - over)) << 15) /
                                             SPEED_GOV_FADE_RANGE);
+
+                  dbg_govGain_q15 = g_q15;
 
                   int32_t tmpR = ((int32_t)cmdR * g_q15) >> 15;
                   int32_t tmpL = ((int32_t)cmdL * g_q15) >> 15;
@@ -519,6 +571,8 @@ int main(void) {
 
                   cmdR = (int16_t)tmpR;
                   cmdL = (int16_t)tmpL;
+              } else {
+                  dbg_govGain_q15 = 32767;   // effectively 1.0 when idle
               }
           }
       }
@@ -668,15 +722,28 @@ int main(void) {
         #if defined(DEBUG_SERIAL_PROTOCOL)
           process_debug();
         #else
-          printf("in1:%i in2:%i cmdL:%i cmdR:%i BatADC:%i BatV:%i TempADC:%i Temp:%i \r\n",
-            input1[inIdx].raw,        // 1: INPUT1
-            input2[inIdx].raw,        // 2: INPUT2
-            cmdL,                     // 3: output command: [-1000, 1000]
-            cmdR,                     // 4: output command: [-1000, 1000]
-            adc_buffer.batt1,         // 5: for battery voltage calibration
-            batVoltageCalib,          // 6: for verifying battery voltage calibration
-            board_temp_adcFilt,       // 7: for board temperature calibration
-            board_temp_deg_c);        // 8: for verifying board temperature calibration
+          printf("in1:%i in2:%i cmdL:%i cmdR:%i "
+                 "nL:%i nR:%i spdAvg:%i "
+                 "EB:%i HOLD:%i "
+                 "GOV:%i gGain:%i gRpm:%i gCmd:%i "
+                 "BatADC:%i BatV:%i TempADC:%i Temp:%i\r\n",
+            input1[inIdx].raw,              // 1: INPUT1 raw
+            input2[inIdx].raw,              // 2: INPUT2 raw
+            cmdL,                           // 3: output command Left
+            cmdR,                           // 4: output command Right
+            (int16_t)rtY_Left.n_mot,        // 5: left motor rpm
+            (int16_t)rtY_Right.n_mot,       // 6: right motor rpm
+            speedAvg,                       // 7: avg motor rpm
+            dbg_ebrakeMaybe,                // 8: ebrake heuristic (0/1)
+            dbg_holdMaybe,                  // 9: standstill-hold heuristic (0/1)
+            dbg_govActive,                  // 10: governor active (0/1)
+            dbg_govGain_q15,                // 11: Q15 gain (32767 ≈ 1.0)
+            dbg_govRpmAbs,                  // 12: filtered |rpm|
+            dbg_govCmdAbs,                  // 13: |speed| cmd when gov checks
+            adc_buffer.batt1,               // 14: raw battery ADC
+            batVoltageCalib,                // 15: calibrated battery *100
+            board_temp_adcFilt,             // 16: raw temp ADC
+            board_temp_deg_c);              // 17: temp *10 °C
         #endif
       }
     #endif
