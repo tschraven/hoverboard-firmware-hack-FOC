@@ -449,7 +449,11 @@ int main(void) {
       #else
         int16_t steer_soft = steer;
       #endif
-
+      
+      #ifdef INVERT_STEER_OUTPUT
+        steer_soft = (int16_t)(-steer_soft);
+      #endif
+      
       // -------- end speed-dependent steering softening --------
       
             // ---- Debug: standstill-hold heuristic ----

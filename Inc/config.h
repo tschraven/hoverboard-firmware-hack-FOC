@@ -290,6 +290,7 @@
 #define DEFAULT_SPEED_COEFFICIENT   32000 // Default for SPEED_COEFFICIENT 1.0f [-] higher value == stronger. [0, 65535] = [-2.0 - 2.0]. In this case 16384 = 1.0 * 2^14
 #define DEFAULT_STEER_COEFFICIENT   16000  // Defualt for STEER_COEFFICIENT 0.5f [-] higher value == stronger. [0, 65535] = [-2.0 - 2.0]. In this case  8192 = 0.5 * 2^14. If you do not want any steering, set it to 0.
 
+#define INVERT_STEER_OUTPUT // Invert polarity for steering used for call sensor
 // ######################### END OF DEFAULT SETTINGS ##########################
 
 
