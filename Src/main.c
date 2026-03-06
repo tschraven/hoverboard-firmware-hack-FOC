@@ -726,13 +726,15 @@ int main(void) {
         #if defined(DEBUG_SERIAL_PROTOCOL)
           process_debug();
         #else
-          printf("in1:%i in2:%i cmdL:%i cmdR:%i "
-                 "nL:%i nR:%i spdAvg:%i "
-                 "EB:%i HOLD:%i "
-                 "GOV:%i gGain:%i gRpm:%i gCmd:%i "
-                 "BatADC:%i BatV:%i TempADC:%i Temp:%i\r\n",
+          printf("in1:%i in2:%i spd:%i str:%i cmdL:%i cmdR:%i "
+                "nL:%i nR:%i spdAvg:%i "
+                "EB:%i HOLD:%i "
+                "GOV:%i gGain:%i gRpm:%i gCmd:%i "
+                "BatADC:%i BatV:%i TempADC:%i Temp:%i\r\n",
             input1[inIdx].raw,              // 1: INPUT1 raw
             input2[inIdx].raw,              // 2: INPUT2 raw
+            speed,                          // added to test hall sensor joystick
+            steer_soft,                     // added to test hall sensor joystick
             cmdL,                           // 3: output command Left
             cmdR,                           // 4: output command Right
             (int16_t)rtY_Left.n_mot,        // 5: left motor rpm
