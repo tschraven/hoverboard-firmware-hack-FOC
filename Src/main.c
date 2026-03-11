@@ -726,7 +726,7 @@ int main(void) {
         #if defined(DEBUG_SERIAL_PROTOCOL)
           process_debug();
         #else
-          printf("in1:%i in2:%i spd:%i str:%i cmdL:%i cmdR:%i "
+          printf("in1:%i in2:%i spd:%i str:%i cmdL:%i cmdR:%i iqL:%i iqR:%i"
                 "nL:%i nR:%i spdAvg:%i "
                 "EB:%i HOLD:%i "
                 "GOV:%i gGain:%i gRpm:%i gCmd:%i "
@@ -737,6 +737,8 @@ int main(void) {
             steer_soft,                     // added to test hall sensor joystick
             cmdL,                           // 3: output command Left
             cmdR,                           // 4: output command Right
+            (int16_t)rtY_Left.iq,           // added to test hall sensor
+            (int16_t)rtY_Right.iq,          // added to test hall sensor
             (int16_t)rtY_Left.n_mot,        // 5: left motor rpm
             (int16_t)rtY_Right.n_mot,       // 6: right motor rpm
             speedAvg,                       // 7: avg motor rpm
