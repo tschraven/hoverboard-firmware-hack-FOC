@@ -727,7 +727,7 @@ int main(void) {
           process_debug();
         #else
           printf("in1:%i in2:%i spd:%i str:%i cmdL:%i cmdR:%i iqL:%i iqR:%i"
-                "nL:%i nR:%i spdAvg:%i "
+                "nL:%i nR:%i errL:%i errR:%i spdAvg:%i "
                 "EB:%i HOLD:%i "
                 "GOV:%i gGain:%i gRpm:%i gCmd:%i "
                 "BatADC:%i BatV:%i TempADC:%i Temp:%i\r\n",
@@ -741,6 +741,8 @@ int main(void) {
             (int16_t)rtY_Right.iq,          // added to test hall sensor
             (int16_t)rtY_Left.n_mot,        // 5: left motor rpm
             (int16_t)rtY_Right.n_mot,       // 6: right motor rpm
+            (int)rtY_Left.z_errCode,        // added to test hall sensor
+            (int)rtY_Right.z_errCode,       // added to test hall sensor
             speedAvg,                       // 7: avg motor rpm
             dbg_ebrakeMaybe,                // 8: ebrake heuristic (0/1)
             dbg_holdMaybe,                  // 9: standstill-hold heuristic (0/1)
