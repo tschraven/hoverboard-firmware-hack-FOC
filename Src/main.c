@@ -112,7 +112,18 @@ int16_t right_dc_curr;           // global variable for Right DC Link current
 int16_t dc_curr;                 // global variable for Total DC Link current 
 int16_t cmdL;                    // global variable for Left Command 
 int16_t cmdR;                    // global variable for Right Command 
+// ------------------------------------------------------------------------
+// ARM / ENABLE BUTTON (PB11 to GND, internal pull-up)
+// ------------------------------------------------------------------------
+#define ARM_BTN_PORT              GPIOB
+#define ARM_BTN_PIN               GPIO_PIN_11
+#define ARM_BTN_PRESSED()         (HAL_GPIO_ReadPin(ARM_BTN_PORT, ARM_BTN_PIN) == GPIO_PIN_RESET)
 
+// Require joystick near center before arming
+#define ARM_NEUTRAL_THR           80
+
+static uint8_t  driveArmed = 0;         // 0 = joystick ignored, 1 = joystick active
+static uint8_t  armBtnPrev = 0;         // for edge detect
 //------------------------------------------------------------------------
 // Local variables
 //------------------------------------------------------------------------
@@ -243,7 +254,15 @@ int main(void) {
   MX_ADC1_Init();
   MX_ADC2_Init();
   BLDC_Init();        // BLDC Controller Init
-
+  // Configure PB11 as ARM button input with internal pull-up.
+  // This intentionally reclaims PB11 from USART3 RX; USART3 TX on PB10 still works for debug output.
+  {
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin  = ARM_BTN_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(ARM_BTN_PORT, &GPIO_InitStruct);
+  }
   HAL_GPIO_WritePin(OFF_PORT, OFF_PIN, GPIO_PIN_SET);   // Activate Latch
   Input_Lim_Init();   // Input Limitations Init
   Input_Init();       // Input Init
@@ -253,7 +272,9 @@ int main(void) {
 
   poweronMelody();
   HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);
-  
+  #if defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)
+  printf("-- Drive NOT armed: press PB11 button with joystick centered --\r\n");
+  #endif
   int32_t board_temp_adcFixdt = adc_buffer.temp << 16;  // Fixed-point filter output initialized with current ADC converted to fixed-point
   int16_t board_temp_adcFilt  = adc_buffer.temp;
 
@@ -297,7 +318,39 @@ int main(void) {
 
     readCommand();                        // Read Command: input1[inIdx].cmd, input2[inIdx].cmd
     calcAvgSpeed();                       // Calculate average measured speed: speedAvg, speedAvgAbs
+        // ---------------------------------------------------------------
+    // ARM button logic: PB11 must be pressed once to enable joystick.
+    // Only arm if joystick is near neutral.
+    // ---------------------------------------------------------------
+    {
+      uint8_t armBtnNow = ARM_BTN_PRESSED();
 
+      // Rising edge on button press
+      if (!driveArmed && armBtnNow && !armBtnPrev) {
+        if (ABS(input1[inIdx].cmd) < ARM_NEUTRAL_THR &&
+            ABS(input2[inIdx].cmd) < ARM_NEUTRAL_THR) {
+          driveArmed = 1;
+          beepShort(5);   // confirmation beep
+          #if defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)
+          printf("-- Drive ARMED --\r\n");
+          #endif
+        } else {
+          beepShort(2);   // reject arming if joystick not centered
+          #if defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)
+          printf("-- Arm rejected: center joystick first --\r\n");
+          #endif
+        }
+      }
+
+      armBtnPrev = armBtnNow;
+
+      // While not armed, ignore joystick completely
+      if (!driveArmed) {
+        input1[inIdx].cmd = 0;
+        input2[inIdx].cmd = 0;
+      }
+    }
+      
     #ifndef VARIANT_TRANSPOTTER
       // ####### MOTOR ENABLING: Only if the initial input is very small (for SAFETY) #######
       if (enable == 0 && !rtY_Left.z_errCode && !rtY_Right.z_errCode && 
@@ -726,11 +779,12 @@ int main(void) {
         #if defined(DEBUG_SERIAL_PROTOCOL)
           process_debug();
         #else
-          printf("in1:%i in2:%i spd:%i str:%i cmdL:%i cmdR:%i iqL:%i iqR:%i"
+          printf("ARM:%i in1:%i in2:%i spd:%i str:%i cmdL:%i cmdR:%i iqL:%i iqR:%i"
                 "nL:%i nR:%i errL:%i errR:%i spdAvg:%i "
                 "EB:%i HOLD:%i "
                 "GOV:%i gGain:%i gRpm:%i gCmd:%i "
                 "BatADC:%i BatV:%i TempADC:%i Temp:%i\r\n",
+            driveArmed,                     // button to activate joystick
             input1[inIdx].raw,              // 1: INPUT1 raw
             input2[inIdx].raw,              // 2: INPUT2 raw
             speed,                          // added to test hall sensor joystick
