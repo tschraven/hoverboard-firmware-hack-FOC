@@ -325,12 +325,23 @@ int main(void) {
     {
       uint8_t armBtnNow = ARM_BTN_PRESSED();
 
-      // Rising edge on button press
-      if (!driveArmed && armBtnNow && !armBtnPrev) {
-        if (ABS(input1[inIdx].cmd) < ARM_NEUTRAL_THR &&
-            ABS(input2[inIdx].cmd) < ARM_NEUTRAL_THR) {
+      if (armBtnNow && !armBtnPrev) {
+
+        // If currently armed -> disarm immediately
+        if (driveArmed) {
+          driveArmed = 0;
+          beepShort(2);   // disarm beep
+          #if defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)
+          printf("-- Drive DISARMED --\r\n");
+          #endif
+        }
+
+        // If currently disarmed -> only arm if joystick is centered
+        else {
+          if (ABS(input1[inIdx].cmd) < ARM_NEUTRAL_THR &&
+          ABS(input2[inIdx].cmd) < ARM_NEUTRAL_THR) {
           driveArmed = 1;
-          beepShort(5);   // confirmation beep
+          beepShort(5);   // arm confirmation beep
           #if defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)
           printf("-- Drive ARMED --\r\n");
           #endif
@@ -339,16 +350,9 @@ int main(void) {
           #if defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)
           printf("-- Arm rejected: center joystick first --\r\n");
           #endif
+          }
         }
-      }
-
-      armBtnPrev = armBtnNow;
-
-      // While not armed, ignore joystick completely
-      if (!driveArmed) {
-        input1[inIdx].cmd = 0;
-        input2[inIdx].cmd = 0;
-      }
+      } 
     }
       
     #ifndef VARIANT_TRANSPOTTER
