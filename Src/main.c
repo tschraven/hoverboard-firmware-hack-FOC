@@ -121,9 +121,12 @@ int16_t cmdR;                    // global variable for Right Command
 
 // Require joystick near center before arming
 #define ARM_NEUTRAL_THR           80
+#define ARM_BTN_DEBOUNCE_MS       300
 
 static uint8_t  driveArmed = 0;         // 0 = joystick ignored, 1 = joystick active
 static uint8_t  armBtnPrev = 0;         // for edge detect
+static uint32_t armBtnLastToggle = 0;
+
 //------------------------------------------------------------------------
 // Local variables
 //------------------------------------------------------------------------
@@ -263,6 +266,11 @@ int main(void) {
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     HAL_GPIO_Init(ARM_BTN_PORT, &GPIO_InitStruct);
   }
+  
+  driveArmed = 0;
+  armBtnPrev = ARM_BTN_PRESSED();
+  armBtnLastToggle = HAL_GetTick();
+  
   HAL_GPIO_WritePin(OFF_PORT, OFF_PIN, GPIO_PIN_SET);   // Activate Latch
   Input_Lim_Init();   // Input Limitations Init
   Input_Init();       // Input Init
@@ -318,19 +326,24 @@ int main(void) {
 
     readCommand();                        // Read Command: input1[inIdx].cmd, input2[inIdx].cmd
     calcAvgSpeed();                       // Calculate average measured speed: speedAvg, speedAvgAbs
-        // ---------------------------------------------------------------
-    // ARM button logic: PB11 must be pressed once to enable joystick.
-    // Only arm if joystick is near neutral.
+    // ---------------------------------------------------------------
+    // ARM button logic: PB11 toggles drive enable/disable.
+    // - Power-up always starts DISARMED
+    // - Arming only allowed if joystick is near neutral
+    // - Debounced to prevent membrane bounce
     // ---------------------------------------------------------------
     {
       uint8_t armBtnNow = ARM_BTN_PRESSED();
 
-      if (armBtnNow && !armBtnPrev) {
+      if (armBtnNow && !armBtnPrev &&
+          (HAL_GetTick() - armBtnLastToggle) > ARM_BTN_DEBOUNCE_MS) {
+
+        armBtnLastToggle = HAL_GetTick();
 
         // If currently armed -> disarm immediately
         if (driveArmed) {
           driveArmed = 0;
-          beepShort(2);   // disarm beep
+          beepShort(2);
           #if defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)
           printf("-- Drive DISARMED --\r\n");
           #endif
@@ -339,22 +352,31 @@ int main(void) {
         // If currently disarmed -> only arm if joystick is centered
         else {
           if (ABS(input1[inIdx].cmd) < ARM_NEUTRAL_THR &&
-          ABS(input2[inIdx].cmd) < ARM_NEUTRAL_THR) {
-          driveArmed = 1;
-          beepShort(5);   // arm confirmation beep
-          #if defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)
-          printf("-- Drive ARMED --\r\n");
-          #endif
-        } else {
-          beepShort(2);   // reject arming if joystick not centered
-          #if defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)
-          printf("-- Arm rejected: center joystick first --\r\n");
-          #endif
+             ABS(input2[inIdx].cmd) < ARM_NEUTRAL_THR) {
+            driveArmed = 1;
+            beepShort(5);
+            #if defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)
+            printf("-- Drive ARMED --\r\n");
+            #endif
+          } else {
+            beepShort(2);
+            #if defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)
+            printf("-- Arm rejected: center joystick first --\r\n");
+            #endif
           }
         }
-      } 
+      }
+
+      armBtnPrev = armBtnNow;
+
+      // While not armed, ignore joystick completely
+      if (!driveArmed) {
+        input1[inIdx].cmd = 0;
+        input2[inIdx].cmd = 0;
+      }
     }
-      
+
+    
     #ifndef VARIANT_TRANSPOTTER
       // ####### MOTOR ENABLING: Only if the initial input is very small (for SAFETY) #######
       if (enable == 0 && !rtY_Left.z_errCode && !rtY_Right.z_errCode && 
