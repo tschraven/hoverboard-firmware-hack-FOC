@@ -202,7 +202,7 @@ static uint8_t  dbg_holdMaybe   = 0;     // heuristic: standstill hold likely ac
 
 #if USE_SPEED_DEP_STEERING
 /* ------------------------------------------------------------------
- * Compute steering gain vs. speed
+ * Compute steering gain vs.speed
  * Input : motor speedAbs_rpm (|speedAvg|)
  * Output: gain Q15 (32767=1.0)
  * ------------------------------------------------------------------*/
