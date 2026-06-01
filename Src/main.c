@@ -802,27 +802,39 @@ int main(void) {
     // ####### DEBUG SERIAL OUT #######
     #if defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)
       if (main_loop_counter % 25 == 0) {    // Send data periodically every 125 ms      
+        
+        // --- CALCULATE RIGHT MOTOR LOAD PERCENTAGES ---
+        int32_t totalCmd = abs(cmdL) + abs(cmdR);
+        int32_t cmdRatioR = (totalCmd == 0) ? 50 : (abs(cmdR) * 100) / totalCmd;
+
+        int32_t totalIq = abs((int16_t)rtY_Left.iq) + abs((int16_t)rtY_Right.iq);
+        int32_t iqRatioR  = (totalIq == 0)  ? 50 : (abs((int16_t)rtY_Right.iq) * 100) / totalIq;
+        // ----------------------------------------------
+
         #if defined(DEBUG_SERIAL_PROTOCOL)
           process_debug();
         #else
-          printf("ARM:%i in1:%i in2:%i spd:%i str:%i cmdL:%i cmdR:%i iqL:%i iqR:%i"
+          printf("ARM:%i in1:%i in2:%i cRatioR:%i%% iqRatioR:%i%% cmdL:%i cmdR:%i rrB:%i rrC:%i dcr:%i iqL:%i iqR:%i "
                 "nL:%i nR:%i errL:%i errR:%i spdAvg:%i "
                 "EB:%i HOLD:%i "
                 "GOV:%i gGain:%i gRpm:%i gCmd:%i "
-                "BatADC:%i BatV:%i TempADC:%i Temp:%i\r\n",
+                "BatV:%i Temp:%i\r\n",
             driveArmed,                     // button to activate joystick
             input1[inIdx].raw,              // 1: INPUT1 raw
             input2[inIdx].raw,              // 2: INPUT2 raw
-            speed,                          // added to test hall sensor joystick
-            steer_soft,                     // added to test hall sensor joystick
+            (int)cmdRatioR,                 // % of Command going to Right Motor (50 = balanced)
+            (int)iqRatioR,                  // % of Torque Current going to Right Motor (50 = balanced)
             cmdL,                           // 3: output command Left
             cmdR,                           // 4: output command Right
-            (int16_t)rtY_Left.iq,           // added to test hall sensor
-            (int16_t)rtY_Right.iq,          // added to test hall sensor
+            adc_buffer.rrB,                 // RIGHT PHASE B ADC (Op-Amp Check)
+            adc_buffer.rrC,                 // RIGHT PHASE C ADC (Op-Amp Check)
+            adc_buffer.dcr,                 // RIGHT DC LINK ADC (Hardware Chopping)
+            (int16_t)rtY_Left.iq,           // Left Torque Current
+            (int16_t)rtY_Right.iq,          // Right Torque Current
             (int16_t)rtY_Left.n_mot,        // 5: left motor rpm
-            (int16_t)rtY_Right.n_mot,       // 6: right motor rpm
-            (int)rtY_Left.z_errCode,        // added to test hall sensor
-            (int)rtY_Right.z_errCode,       // added to test hall sensor
+            (int16_t)rtY_Right.n_mot,       // 6: right motor rpm (Hall Sensor Check)
+            (int)rtY_Left.z_errCode,        // left error code
+            (int)rtY_Right.z_errCode,       // right error code
             speedAvg,                       // 7: avg motor rpm
             dbg_ebrakeMaybe,                // 8: ebrake heuristic (0/1)
             dbg_holdMaybe,                  // 9: standstill-hold heuristic (0/1)
@@ -830,9 +842,7 @@ int main(void) {
             dbg_govGain_q15,                // 11: Q15 gain (32767 ≈ 1.0)
             dbg_govRpmAbs,                  // 12: filtered |rpm|
             dbg_govCmdAbs,                  // 13: |speed| cmd when gov checks
-            adc_buffer.batt1,               // 14: raw battery ADC
             batVoltageCalib,                // 15: calibrated battery *100
-            board_temp_adcFilt,             // 16: raw temp ADC
             board_temp_deg_c);              // 17: temp *10 °C
         #endif
       }
