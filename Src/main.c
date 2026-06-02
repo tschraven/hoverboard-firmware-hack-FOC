@@ -814,36 +814,22 @@ int main(void) {
         #if defined(DEBUG_SERIAL_PROTOCOL)
           process_debug();
         #else
-          printf("ARM:%i in1:%i in2:%i cRatioR:%i%% iqRatioR:%i%% cmdL:%i cmdR:%i rrB:%i rrC:%i dcr:%i iqL:%i iqR:%i "
-                "nL:%i nR:%i errL:%i errR:%i spdAvg:%i "
-                "EB:%i HOLD:%i "
-                "GOV:%i gGain:%i gRpm:%i gCmd:%i "
-                "BatV:%i Temp:%i\r\n",
-            driveArmed,                     // button to activate joystick
-            input1[inIdx].raw,              // 1: INPUT1 raw
-            input2[inIdx].raw,              // 2: INPUT2 raw
-            (int)cmdRatioR,                 // % of Command going to Right Motor (50 = balanced)
-            (int)iqRatioR,                  // % of Torque Current going to Right Motor (50 = balanced)
-            cmdL,                           // 3: output command Left
-            cmdR,                           // 4: output command Right
-            adc_buffer.rrB,                 // RIGHT PHASE B ADC (Op-Amp Check)
-            adc_buffer.rrC,                 // RIGHT PHASE C ADC (Op-Amp Check)
-            adc_buffer.dcr,                 // RIGHT DC LINK ADC (Hardware Chopping)
-            (int16_t)rtY_Left.iq,           // Left Torque Current
-            (int16_t)rtY_Right.iq,          // Right Torque Current
-            (int16_t)rtY_Left.n_mot,        // 5: left motor rpm
-            (int16_t)rtY_Right.n_mot,       // 6: right motor rpm (Hall Sensor Check)
-            (int)rtY_Left.z_errCode,        // left error code
-            (int)rtY_Right.z_errCode,       // right error code
-            speedAvg,                       // 7: avg motor rpm
-            dbg_ebrakeMaybe,                // 8: ebrake heuristic (0/1)
-            dbg_holdMaybe,                  // 9: standstill-hold heuristic (0/1)
-            dbg_govActive,                  // 10: governor active (0/1)
-            dbg_govGain_q15,                // 11: Q15 gain (32767 ≈ 1.0)
-            dbg_govRpmAbs,                  // 12: filtered |rpm|
-            dbg_govCmdAbs,                  // 13: |speed| cmd when gov checks
-            batVoltageCalib,                // 15: calibrated battery *100
-            board_temp_deg_c);              // 17: temp *10 °C
+          printf("RawStr:%i CmdStr:%i FiltStr:%i SoftStr:%i FiltSpd:%i cmdL:%i cmdR:%i cRatioR:%i%% iqRatioR:%i%% rrB:%i rrC:%i iqL:%i iqR:%i nL:%i nR:%i\r\n",
+            input1[inIdx].raw,              // 1. RAW ADC from Hall Sensor
+            (int16_t)input1[inIdx].cmd,     // 2. Mapped Command (Post-Deadband)
+            steer,                          // 3. Filtered Steer (Post-LPF & Rate Limit)
+            steer_soft,                     // 4. Softened Steer (Final value fed to mixer)
+            speed,                          // 5. Final Speed value fed to mixer
+            cmdL,                           // 6. Left Target Output
+            cmdR,                           // 7. Right Target Output
+            (int)cmdRatioR,                 // 8. Mixer Balance %
+            (int)iqRatioR,                  // 9. Actual FOC Torque Balance %
+            adc_buffer.rrB,                 // 10. Phase B Hardware Check
+            adc_buffer.rrC,                 // 11. Phase C Hardware Check
+            (int16_t)rtY_Left.iq,           // 12. Left FOC Torque
+            (int16_t)rtY_Right.iq,          // 13. Right FOC Torque
+            (int16_t)rtY_Left.n_mot,        // 14. Left RPM
+            (int16_t)rtY_Right.n_mot);      // 15. Right RPM
         #endif
       }
     #endif
