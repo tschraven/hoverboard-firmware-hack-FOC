@@ -803,33 +803,20 @@ int main(void) {
     #if defined(DEBUG_SERIAL_USART2) || defined(DEBUG_SERIAL_USART3)
       if (main_loop_counter % 25 == 0) {    // Send data periodically every 125 ms      
         
-        // --- CALCULATE RIGHT MOTOR LOAD PERCENTAGES ---
-        int32_t totalCmd = abs(cmdL) + abs(cmdR);
-        int32_t cmdRatioR = (totalCmd == 0) ? 50 : (abs(cmdR) * 100) / totalCmd;
-
-        int32_t totalIq = abs((int16_t)rtY_Left.iq) + abs((int16_t)rtY_Right.iq);
-        int32_t iqRatioR  = (totalIq == 0)  ? 50 : (abs((int16_t)rtY_Right.iq) * 100) / totalIq;
-        // ----------------------------------------------
-
         #if defined(DEBUG_SERIAL_PROTOCOL)
           process_debug();
         #else
-          printf("RawStr:%i CmdStr:%i FiltStr:%i SoftStr:%i FiltSpd:%i cmdL:%i cmdR:%i cRatioR:%i%% iqRatioR:%i%% rrB:%i rrC:%i iqL:%i iqR:%i nL:%i nR:%i\r\n",
-            input1[inIdx].raw,              // 1. RAW ADC from Hall Sensor
-            (int16_t)input1[inIdx].cmd,     // 2. Mapped Command (Post-Deadband)
-            steer,                          // 3. Filtered Steer (Post-LPF & Rate Limit)
-            steer_soft,                     // 4. Softened Steer (Final value fed to mixer)
-            speed,                          // 5. Final Speed value fed to mixer
-            cmdL,                           // 6. Left Target Output
-            cmdR,                           // 7. Right Target Output
-            (int)cmdRatioR,                 // 8. Mixer Balance %
-            (int)iqRatioR,                  // 9. Actual FOC Torque Balance %
-            adc_buffer.rrB,                 // 10. Phase B Hardware Check
-            adc_buffer.rrC,                 // 11. Phase C Hardware Check
-            (int16_t)rtY_Left.iq,           // 12. Left FOC Torque
-            (int16_t)rtY_Right.iq,          // 13. Right FOC Torque
-            (int16_t)rtY_Left.n_mot,        // 14. Left RPM
-            (int16_t)rtY_Right.n_mot);      // 15. Right RPM
+          printf("L_A:%i L_B:%i R_B:%i R_C:%i cmdL:%i cmdR:%i iqL:%i iqR:%i nL:%i nR:%i\r\n",
+            adc_buffer.rlA,                 // LEFT Phase A ADC (Hardware Check)
+            adc_buffer.rlB,                 // LEFT Phase B ADC (Hardware Check)
+            adc_buffer.rrB,                 // RIGHT Phase B ADC (Hardware Check)
+            adc_buffer.rrC,                 // RIGHT Phase C ADC (Hardware Check)
+            cmdL,                           // Left Target Command
+            cmdR,                           // Right Target Command
+            (int16_t)rtY_Left.iq,           // Left Actual FOC Torque
+            (int16_t)rtY_Right.iq,          // Right Actual FOC Torque
+            (int16_t)rtY_Left.n_mot,        // Left Motor RPM
+            (int16_t)rtY_Right.n_mot);      // Right Motor RPM
         #endif
       }
     #endif
