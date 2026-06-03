@@ -149,7 +149,7 @@ void DMA1_Channel1_IRQHandler(void) {
 
   // Adjust pwm_margin depending on the selected Control Type
   if (rtP_Left.z_ctrlTypSel == FOC_CTRL) {
-    pwm_margin = 110;
+    pwm_margin = 150;
   } else {
     pwm_margin = 0;
   }
