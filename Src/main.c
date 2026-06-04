@@ -542,6 +542,7 @@ int main(void) {
         int16_t cmdStrAbs = (steer    >= 0) ? steer    : (int16_t)(-steer);
 
         // "Likely hold" when near standstill and commands near neutral
+        /*
         if (spdAbs <= STANDSTILL_HOLD_THR &&
             cmdSpdAbs <= STANDSTILL_SPEED_NEUTRAL &&
             cmdStrAbs <= STANDSTILL_STEER_NEUTRAL) {
@@ -549,7 +550,9 @@ int main(void) {
         } else {
           dbg_holdMaybe = 0;
         }
+          */
       }
+
 
       // ---- Debug: ebrake heuristic ----
       {
