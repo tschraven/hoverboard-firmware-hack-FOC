@@ -164,11 +164,11 @@
 #define FIELD_WEAK_LO   750             // ( 500, 1000] Input target Low threshold for starting Field Weakening / Phase Advance. Do NOT set this higher than 1000.
 
 // Extra functionality
-#define STANDSTILL_HOLD_ENABLE         // [-] Flag to hold the position when standtill is reached. Only available and makes sense for VOLTAGE or TORQUE mode.
-  #define STANDSTILL_HOLD_THR    200   // engage below this avg speed (tune 100–300). NOTE: currently not build in
-  #define STANDSTILL_HOLD_MAX    500   // max hold torque (tune 300–700). NOTE: currently not build in
-  #define STANDSTILL_STEER_NEUTRAL   20   // Neutral thresholds for Standstill Hold, command units, ~small steer wiggle allowed
-  #define STANDSTILL_SPEED_NEUTRAL   20   // Neutral thresholds for Standstill Hold, command units, ~tiny throttle wiggle allowed
+//#define STANDSTILL_HOLD_ENABLE         // [-] Flag to hold the position when standtill is reached. Only available and makes sense for VOLTAGE or TORQUE mode.
+  //#define STANDSTILL_HOLD_THR    200   // engage below this avg speed (tune 100–300). NOTE: currently not build in
+  //#define STANDSTILL_HOLD_MAX    500   // max hold torque (tune 300–700). NOTE: currently not build in
+  //#define STANDSTILL_STEER_NEUTRAL   20   // Neutral thresholds for Standstill Hold, command units, ~small steer wiggle allowed
+ // #define STANDSTILL_SPEED_NEUTRAL   20   // Neutral thresholds for Standstill Hold, command units, ~tiny throttle wiggle allowed
 #define ELECTRIC_BRAKE_ENABLE           // [-] Flag to enable electric brake and replace the motor "freewheel" with a constant braking when the input torque request is 0. Only available and makes sense for TORQUE mode.
  #define ELECTRIC_BRAKE_MAX    220      // (0, 500) Maximum electric brake to be applied when input torque request is 0 (pedal fully released).
  #define ELECTRIC_BRAKE_THRES  160       // (0, 500) Threshold below at which the electric brake starts engaging.
@@ -196,19 +196,19 @@
 // Scales both left/right commands together when actual speed exceeds
 // SPEED_GOV_RPM and the rider is still on throttle.
 // ======================================================================
-#define USE_SPEED_GOV            0      // 1 = enable, 0 = disable
+//#define USE_SPEED_GOV            0      // 1 = enable, 0 = disable
 
 // Motor-shaft speed (rpm) where governor starts to fade torque
-#define SPEED_GOV_RPM            120    // ≈ 3 mph for 8" wheel
+//#define SPEED_GOV_RPM            120    // ≈ 3 mph for 8" wheel
 
 // Hysteresis (rpm) before governor disengages
-#define SPEED_GOV_HYST           20     // off again below 100 rpm
+//#define SPEED_GOV_HYST           20     // off again below 100 rpm
 
 // Fade range above SPEED_GOV_RPM (rpm) over which torque goes to 0
-#define SPEED_GOV_FADE_RANGE     40     // fully faded by ~160 rpm
+//#define SPEED_GOV_FADE_RANGE     40     // fully faded by ~160 rpm
 
 // Only apply governor if throttle command is significantly non-zero
-#define SPEED_GOV_CMD_NEUTRAL    80     // speed command units (~small stick wiggle)
+//#define SPEED_GOV_CMD_NEUTRAL    80     // speed command units (~small stick wiggle)
 
 // ======================================================================
 // HARD TOP-SPEED LIMITER  (for torque mode)
@@ -217,15 +217,15 @@
 // Works with N_MOT_MAX and speed-dependent steering.
 // ======================================================================
 
-#define USE_SPEED_CAP         0      // 1 = enable, 0 = disable
+//#define USE_SPEED_CAP         0      // 1 = enable, 0 = disable
 // Motor-shaft speed (rpm) where limiter starts to fade throttle
-#define SPEED_CAP_RPM         160    // ≈ 3.5 mph for 216 mm wheel, 1:1 gearing
+//#define SPEED_CAP_RPM         160    // ≈ 3.5 mph for 216 mm wheel, 1:1 gearing
 // Hysteresis band (rpm) before limiter disengages
-#define SPEED_CAP_HYST        10     // prevents on/off chatter near threshold
+//#define SPEED_CAP_HYST        10     // prevents on/off chatter near threshold
 // Fade range above SPEED_CAP_RPM where throttle goes to zero (rpm)
-#define SPEED_CAP_FADE_RANGE  40     // smooth taper, adjust to taste
+//#define SPEED_CAP_FADE_RANGE  40     // smooth taper, adjust to taste
 // Only apply speed cap when throttle command is significantly non-zero. This avoids fighting electric brake / standstill hold during decel.
-#define SPEED_CAP_CMD_NEUTRAL   80   // joystick speed units (~small stick wiggle)
+//#define SPEED_CAP_CMD_NEUTRAL   80   // joystick speed units (~small stick wiggle)
 
 // ======================================================================
 // SPEED-DEPENDENT STEERING  (toggle ON/OFF)
