@@ -268,7 +268,7 @@
 
     // Per-axis base low-pass filter (fixdt(0,16,16))
     #define DEFAULT_STEER_FILTER        24000
-    #define DEFAULT_SPEED_FILTER        6500
+    #define DEFAULT_SPEED_FILTER        13000
 
     // Allow overriding from elsewhere if ever needed
     #ifndef STEER_RATE
